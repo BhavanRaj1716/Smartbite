@@ -104,22 +104,18 @@ function friendlyError(code) {
 
 const TOKEN_DOC = doc(db, "meta", "tokenCounter");
 
-// Get next token atomically — safe even with multiple simultaneous orders
+// Get next token atomically — resets daily, sequential within the day
 async function getNextToken() {
-  try {
-    const newToken = await runTransaction(db, async (tx) => {
-      const snap = await tx.get(TOKEN_DOC);
-      const current = snap.exists() ? (snap.data().current || 0) : 0;
-      const next = current + 1;
-      tx.set(TOKEN_DOC, { current: next });
-      return next;
-    });
-    return newToken;
-  } catch (err) {
-    console.error("Token counter error:", err);
-    // Fallback to timestamp-based token if Firestore fails
-    return Date.now() % 10000;
-  }
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return await runTransaction(db, async (tx) => {
+    const snap = await tx.get(TOKEN_DOC);
+    const data = snap.exists() ? snap.data() : {};
+    // Reset counter if it's a new day
+    const current = (data.date === today) ? (data.current || 0) : 0;
+    const next = current + 1;
+    tx.set(TOKEN_DOC, { current: next, date: today });
+    return next;
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════
