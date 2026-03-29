@@ -8,7 +8,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
   signOut,
   updateProfile,
@@ -185,11 +186,17 @@ function initApp(user) {
 document.addEventListener("DOMContentLoaded", () => {
 
   // ── Google Sign-In ─────────────────────────────────────────────
+  // Handle redirect result on page load
+  getRedirectResult(auth).catch((err) => {
+    console.error("Redirect result error:", err.code);
+    showAuthError(friendlyError(err.code));
+  });
+
   document.getElementById("googleBtn").addEventListener("click", async () => {
     clearAuthError();
-    setLoading("googleBtn", true, "Continue with Google");
+    setLoading("googleBtn", true, "Redirecting...");
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithRedirect(auth, provider);
     } catch (err) {
       console.error("Google login error:", err.code, err.message);
       showAuthError(friendlyError(err.code));
