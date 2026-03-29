@@ -8,6 +8,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   onAuthStateChanged,
@@ -185,27 +186,29 @@ function initApp(user) {
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ── Google Sign-In ─────────────────────────────────────────────
-  // Handle redirect result on page load
+  // Handle redirect result on page load (fallback from popup-blocked)
   getRedirectResult(auth).then((result) => {
     if (result && result.user) {
-      // onAuthStateChanged will handle the transition
       console.log("Google redirect sign-in success:", result.user.email);
     }
   }).catch((err) => {
     console.error("Redirect result error:", err.code);
-    showAuthError(friendlyError(err.code));
   });
 
   document.getElementById("googleBtn").addEventListener("click", async () => {
     clearAuthError();
-    setLoading("googleBtn", true, "Redirecting...");
+    setLoading("googleBtn", true, "Continue with Google");
     try {
-      await signInWithRedirect(auth, provider);
+      await signInWithPopup(auth, provider);
     } catch (err) {
-      console.error("Google login error:", err.code, err.message);
-      showAuthError(friendlyError(err.code));
-      setLoading("googleBtn", false, "Continue with Google");
+      if (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user") {
+        // Fallback to redirect if popup is blocked
+        await signInWithRedirect(auth, provider);
+      } else {
+        console.error("Google login error:", err.code, err.message);
+        showAuthError(friendlyError(err.code));
+        setLoading("googleBtn", false, "Continue with Google");
+      }
     }
   });
 
