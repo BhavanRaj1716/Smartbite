@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Smart Canteen</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .googleBtn {
+      width:100%; padding:12px; margin-bottom:16px;
+      background:#fff; color:#1f1f1f; border:1px solid #dadce0;
+      border-radius:8px; font-family:'JetBrains Mono',monospace;
+      font-weight:600; font-size:0.85rem; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      transition:box-shadow 0.15s, opacity 0.15s;
+    }
+    .googleBtn:hover    { box-shadow:0 1px 6px rgba(0,0,0,0.2); }
+    .googleBtn:disabled { opacity:0.6; cursor:not-allowed; }
+    .googleBtn svg      { flex-shrink:0; }
+
+    .authDivider {
+      display:flex; align-items:center; gap:12px;
+      margin:4px 0 16px; color:#374151;
+      font-size:0.72rem; letter-spacing:1px;
+    }
+    .authDivider::before, .authDivider::after {
+      content:''; flex:1; height:1px; background:#1c2333;
+    }
+
+    .upiPayLink {
+      display:block; width:100%; padding:11px; margin:10px 0 4px;
+      background:#00c8f0; color:#07090f; border-radius:8px;
+      text-align:center; font-family:'JetBrains Mono',monospace;
+      font-weight:700; font-size:0.85rem; text-decoration:none;
+      letter-spacing:0.5px; transition:opacity 0.15s;
+    }
+    .upiPayLink:hover { opacity:0.88; }
+
+    .forgotLink {
+      display:block; text-align:right; font-size:0.75rem;
+      color:#6b7280; text-decoration:none; margin-bottom:12px;
+      transition:color 0.15s;
+    }
+    .forgotLink:hover { color:#00c8f0; }
+
+    /* Cancel button on live orders */
+    .cancelOrderBtn {
+      font-size:0.65rem; padding:3px 9px; border-radius:20px;
+      border:1px solid #ff4560; background:rgba(255,69,96,0.08);
+      color:#ff4560; cursor:pointer;
+      font-family:'JetBrains Mono',monospace; font-weight:600;
+      transition:background 0.15s; margin-top:2px;
+    }
+    .cancelOrderBtn:hover { background:rgba(255,69,96,0.22); }
+    .cancelOrderBtn:disabled { opacity:0.4; cursor:not-allowed; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. SPLASH -->
+  <div id="splashScreen">
+    <div class="splashInner">
+      <div class="splashIcon">🍽</div>
+      <h1 class="splashTitle">Smart Canteen</h1>
+      <div class="splashBar"><div class="splashProgress"></div></div>
+      <p class="splashSub">Loading your experience...</p>
+    </div>
+  </div>
+
+  <!-- 2. AUTH SCREEN -->
+  <div id="authScreen" style="display:none;">
+    <div class="authLeft">
+      <div class="authBranding">
+        <span class="authBrandIcon">🍽</span>
+        <h2 class="authBrandName">Smart Canteen</h2>
+        <p class="authBrandTagline">Order food from your seat.<br>Fast, simple, smart.</p>
+        <ul class="authFeatureList">
+          <li>✦ Real-time order tracking</li>
+          <li>✦ UPI &amp; cash payments</li>
+          <li>✦ Live kitchen updates</li>
+          <li>✦ Cancel order within 1 minute</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="authRight">
+      <div class="authCard">
+        <div class="authCardHeader">
+          <button class="authTab active" id="tabLogin"  onclick="switchTab('login')">Login</button>
+          <button class="authTab"        id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+        </div>
+
+        <button class="googleBtn" id="googleBtn">
+          <svg width="18" height="18" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          Continue with Google
+        </button>
+        <div class="authDivider">or</div>
+
+        <!-- Login Form -->
+        <div id="loginForm">
+          <div class="inputGroup">
+            <label>Email Address</label>
+            <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+          </div>
+          <div class="inputGroup">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password">
+          </div>
+          <a href="#" id="forgotPassword" class="forgotLink">Forgot Password?</a>
+          <button class="authSubmit" id="loginBtn">Login →</button>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signupForm" style="display:none;">
+          <div class="inputGroup">
+            <label>Full Name</label>
+            <input type="text" id="signupName" placeholder="Your name" autocomplete="name">
+          </div>
+          <div class="inputGroup">
+            <label>Email Address</label>
+            <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email">
+          </div>
+          <div class="inputGroup">
+            <label>Password</label>
+            <input type="password" id="signupPassword" placeholder="Min 6 characters" autocomplete="new-password">
+          </div>
+          <button class="authSubmit" id="signupBtn">Create Account →</button>
+          <p style="font-size:0.75rem;opacity:0.55;margin-top:10px;text-align:center;">
+            A verification link will be sent to your email.
+          </p>
+        </div>
+
+        <p id="authError" class="authError" style="display:none;"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MAIN APP -->
+  <div id="mainApp" style="display:none;">
+
+    <nav class="appNav">
+      <div class="navLogo">🍽 <span>Smart Canteen</span></div>
+      <div class="navUser">
+        <div class="navUserInfo">
+          <span id="navUserName"  class="navName"></span>
+          <span id="navUserEmail" class="navEmail"></span>
+        </div>
+        <button onclick="logout()" class="navLogoutBtn">Logout</button>
+      </div>
+    </nav>
+
+    <div class="appGrid">
+
+      <!-- Menu + Orders -->
+      <section class="menuSection">
+        <div class="sectionHeader">
+          <h2 class="sectionTitle">Menu</h2>
+          <span class="sectionMeta">Fresh today</span>
+        </div>
+
+        <div class="menuGrid">
+          <div class="card">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80" alt="Burger">
+              <span class="cardBadge">Popular</span>
+            </div>
+            <div class="cardBody">
+              <h4>Burger</h4>
+              <p class="cardDesc">Crispy patty, fresh veggies</p>
+              <div class="cardFooter">
+                <span class="price">₹100</span>
+                <button onclick="addToCart('Burger', 100)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1594007654729-407eedc4be65?w=400&q=80" alt="Pizza">
+            </div>
+            <div class="cardBody">
+              <h4>Pizza</h4>
+              <p class="cardDesc">Wood-fired, loaded toppings</p>
+              <div class="cardFooter">
+                <span class="price">₹120</span>
+                <button onclick="addToCart('Pizza', 120)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&q=80" alt="Juice">
+            </div>
+            <div class="cardBody">
+              <h4>Juice</h4>
+              <p class="cardDesc">Cold pressed, fresh fruit</p>
+              <div class="cardFooter">
+                <span class="price">₹40</span>
+                <button onclick="addToCart('Juice', 40)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&q=80" alt="Sandwich">
+            </div>
+            <div class="cardBody">
+              <h4>Sandwich</h4>
+              <p class="cardDesc">Toasted, loaded fillings</p>
+              <div class="cardFooter">
+                <span class="price">₹50</span>
+                <button onclick="addToCart('Sandwich', 50)">+ Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Orders section -->
+        <div class="liveOrdersSection">
+          <h3 class="sectionTitle" style="margin-top:40px; font-size:1rem;">Your Orders 📋</h3>
+          <p style="font-size:0.72rem; color:var(--textDim); margin-top:6px; margin-bottom:4px;">
+            ⏱ You can cancel within 1 minute of placing if the order is still Preparing.
+          </p>
+          <ul id="ordersList" class="liveOrdersList"></ul>
+        </div>
+      </section>
+
+      <!-- Cart Sidebar -->
+      <aside class="cartSidebar">
+        <h2 class="sidebarTitle">Cart 🛒</h2>
+        <ul id="cartList" class="cartList"></ul>
+        <div id="emptyCartMsg" class="emptyCartMsg">No items yet. Add from the menu!</div>
+
+        <div class="cartTotal">
+          <span>Total</span>
+          <span id="totalPrice">₹0</span>
+        </div>
+
+        <div class="sidebarDivider"></div>
+
+        <label class="sidebarLabel">Payment Method</label>
+        <select id="paymentMethod" onchange="handlePaymentChange()">
+          <option value="">Select Payment</option>
+          <option value="UPI">UPI</option>
+          <option value="Cash">Cash</option>
+        </select>
+
+        <!-- UPI Panel -->
+        <div id="upiSection" style="display:none;" class="upiBox">
+          <p class="upiLabel" id="upiLabel">Scan &amp; Pay</p>
+          <img id="upiQR" src="" alt="UPI QR" class="upiQR" style="display:none;">
+          <p class="upiId">UPI ID: <b id="upiIdText"></b></p>
+          <p class="upiAmount">Amount: <b>₹<span id="upiAmount">0</span></b></p>
+          <p class="upiNote" id="upiNote"></p>
+          <a id="upiPayBtn" href="#" class="upiPayLink" style="display:none;" target="_blank">📱 Open UPI App →</a>
+          <button id="upiConfirmBtn" onclick="confirmUpiPayment()" style="
+            width:100%; margin-top:12px; padding:11px;
+            background:transparent; border:2px solid #22c55e;
+            color:#22c55e; border-radius:8px;
+            font-family:'JetBrains Mono',monospace;
+            font-weight:700; font-size:0.85rem;
+            cursor:pointer; transition:all 0.2s;
+          ">✔ I Have Paid</button>
+        </div>
+
+        <button id="checkoutBtn" onclick="checkout()">Checkout →</button>
+      </aside>
+
+    </div><!-- /.appGrid -->
+  </div><!-- /#mainApp -->
+
+  <div id="toast"></div>
+
+  <script type="module" src="script.js"></script>
+  <script>
+    window.switchTab = function (tab) {
+      document.getElementById('loginForm').style.display  = tab === 'login'  ? 'block' : 'none';
+      document.getElementById('signupForm').style.display = tab === 'signup' ? 'block' : 'none';
+      document.getElementById('tabLogin').classList.toggle('active',  tab === 'login');
+      document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+      const err = document.getElementById('authError');
+      err.innerText = ''; err.style.display = 'none'; err.style.color = '';
+    };
+  </script>
+</body>
+</html>
