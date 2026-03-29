@@ -187,7 +187,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Google Sign-In ─────────────────────────────────────────────
   // Handle redirect result on page load
-  getRedirectResult(auth).catch((err) => {
+  getRedirectResult(auth).then((result) => {
+    if (result && result.user) {
+      // onAuthStateChanged will handle the transition
+      console.log("Google redirect sign-in success:", result.user.email);
+    }
+  }).catch((err) => {
     console.error("Redirect result error:", err.code);
     showAuthError(friendlyError(err.code));
   });
