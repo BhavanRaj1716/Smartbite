@@ -1,7 +1,7 @@
 import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore, collection, addDoc, onSnapshot,
-  query, where, doc, updateDoc, getDoc, setDoc, runTransaction
+  query, where, doc, updateDoc, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
   getAuth,
@@ -29,11 +29,9 @@ const firebaseConfig = {
   measurementId:     "G-35J29T7499"
 };
 
-// ─── UPI Config — change to your real UPI ID ──────────────────────
 const UPI_ID   = "b1869452@oksbi";
 const UPI_NAME = "Bhavan+Raj";
 
-// ─── Init ──────────────────────────────────────────────────────────
 const app      = initializeApp(firebaseConfig);
 const db       = getFirestore(app);
 const auth     = getAuth(app);
@@ -44,6 +42,10 @@ let cart                  = [];
 let ordersListenerStarted = false;
 let ordersUnsubscribe     = null;
 let upiPaymentConfirmed   = false;
+
+// Track previous order statuses to detect changes for notifications
+// Map of orderId → last known status
+const prevStatuses = new Map();
 
 // ══════════════════════════════════════════════════════════════════
 //  UTILITIES
@@ -99,20 +101,83 @@ function friendlyError(code) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  TOKEN COUNTER — stored in Firestore so it never resets
+//  CUSTOMER BROWSER NOTIFICATIONS
+//  Fires when admin changes order status to "Preparing" (payment
+//  confirmed) or "Ready" (food is ready to collect).
+// ══════════════════════════════════════════════════════════════════
+
+function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+
+function fireCustomerNotification(title, body) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification(title, {
+      body,
+      icon: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
+      badge: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
+    });
+  }
+}
+
+// Called every time the orders snapshot updates.
+// Compares current status against last known status and fires notification
+// only when something genuinely changed.
+function checkStatusChanges(orders) {
+  orders.forEach((data) => {
+    const prev = prevStatuses.get(data._id);
+
+    // Only fire if we already had a previous state (skip on first render)
+    if (prev !== undefined && prev !== data.status) {
+
+      if (data.status === "Preparing" && prev === "Pending Payment") {
+        // Admin confirmed UPI payment → kitchen started
+        fireCustomerNotification(
+          "✅ Payment Confirmed — Token #" + data.token,
+          "Your payment was verified! Your order is now being prepared. 🍳"
+        );
+        showToast("✅ Payment confirmed! Your order is being prepared.", 6000);
+      }
+
+      if (data.status === "Ready") {
+        // Admin marked order ready
+        fireCustomerNotification(
+          "🍽 Order Ready — Token #" + data.token,
+          "Your order is ready! Please come and collect it. 🎉"
+        );
+        showToast("🍽 Your order Token #" + data.token + " is READY! Come collect it.", 8000);
+      }
+
+      if (data.status === "Delivered") {
+        fireCustomerNotification(
+          "✓ Order Delivered — Token #" + data.token,
+          "Your order has been marked as delivered. Enjoy your meal! 😊"
+        );
+      }
+    }
+
+    // Update tracked status
+    prevStatuses.set(data._id, data.status);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TOKEN COUNTER — Firestore, resets daily
 // ══════════════════════════════════════════════════════════════════
 
 const TOKEN_DOC = doc(db, "meta", "tokenCounter");
 
-// Get next token atomically — resets daily, sequential within the day
 async function getNextToken() {
-  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const today = new Date().toISOString().slice(0, 10);
   return await runTransaction(db, async (tx) => {
-    const snap = await tx.get(TOKEN_DOC);
-    const data = snap.exists() ? snap.data() : {};
-    // Reset counter if it's a new day
+    const snap    = await tx.get(TOKEN_DOC);
+    const data    = snap.exists() ? snap.data() : {};
     const current = (data.date === today) ? (data.current || 0) : 0;
-    const next = current + 1;
+    const next    = current + 1;
     tx.set(TOKEN_DOC, { current: next, date: today });
     return next;
   });
@@ -132,7 +197,6 @@ function showScreen(id) {
   });
 }
 
-// ── Splash + Auth coordination ─────────────────────────────────────
 let splashDone   = false;
 let authResolved = false;
 let resolvedUser = null;
@@ -160,6 +224,7 @@ onAuthStateChanged(auth, (user) => {
       updateCartUI();
       if (ordersUnsubscribe) { ordersUnsubscribe(); ordersUnsubscribe = null; }
       ordersListenerStarted = false;
+      prevStatuses.clear();
       showScreen("authScreen");
     }
   }
@@ -170,9 +235,7 @@ function initApp(user) {
   const emailEl = document.getElementById("navUserEmail");
   if (nameEl)  nameEl.innerText  = user.displayName || "Customer";
   if (emailEl) emailEl.innerText = user.email || "";
-  if (Notification && Notification.permission === "default") {
-    Notification.requestPermission();
-  }
+  requestNotificationPermission();
   startOrdersListener(user);
 }
 
@@ -182,15 +245,11 @@ function initApp(user) {
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  // Handle redirect result on page load (fallback from popup-blocked)
   getRedirectResult(auth).then((result) => {
-    if (result && result.user) {
-      console.log("Google redirect sign-in success:", result.user.email);
-    }
-  }).catch((err) => {
-    console.error("Redirect result error:", err.code);
-  });
+    if (result && result.user) console.log("Google redirect sign-in:", result.user.email);
+  }).catch((err) => { console.error("Redirect result error:", err.code); });
 
+  // Google Sign-In
   document.getElementById("googleBtn").addEventListener("click", async () => {
     clearAuthError();
     setLoading("googleBtn", true, "Continue with Google");
@@ -198,44 +257,38 @@ document.addEventListener("DOMContentLoaded", () => {
       await signInWithPopup(auth, provider);
     } catch (err) {
       if (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user") {
-        // Fallback to redirect if popup is blocked
         await signInWithRedirect(auth, provider);
       } else {
-        console.error("Google login error:", err.code, err.message);
         showAuthError(friendlyError(err.code));
         setLoading("googleBtn", false, "Continue with Google");
       }
     }
   });
 
-  // ── Email Login ────────────────────────────────────────────────
+  // Email Login
   document.getElementById("loginBtn").addEventListener("click", async () => {
     clearAuthError();
     const email    = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
     if (!email || !password) { showAuthError("Please enter both email and password."); return; }
-
     setLoading("loginBtn", true, "Login →");
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
-      console.error("Login error:", err.code, err.message);
       showAuthError(friendlyError(err.code));
       setLoading("loginBtn", false, "Login →");
     }
   });
 
-  // ── Email Signup ───────────────────────────────────────────────
+  // Email Signup
   document.getElementById("signupBtn").addEventListener("click", async () => {
     clearAuthError();
     const name     = document.getElementById("signupName").value.trim();
     const email    = document.getElementById("signupEmail").value.trim();
     const password = document.getElementById("signupPassword").value;
-
     if (!name || !email || !password) { showAuthError("Please fill in all fields."); return; }
     if (password.length < 6)          { showAuthError("Password must be at least 6 characters."); return; }
     if (!/\S+@\S+\.\S+/.test(email))  { showAuthError("Please enter a valid email address."); return; }
-
     setLoading("signupBtn", true, "Create Account →");
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
@@ -244,41 +297,33 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("✅ Account created! Check your email to verify.", 7000);
       window.switchTab("login");
     } catch (err) {
-      console.error("Signup error:", err.code, err.message);
       showAuthError(friendlyError(err.code));
     }
     setLoading("signupBtn", false, "Create Account →");
   });
 
-  // ── Forgot Password ────────────────────────────────────────────
+  // Forgot Password
   const forgotLink = document.getElementById("forgotPassword");
   if (forgotLink) {
     forgotLink.addEventListener("click", async (e) => {
       e.preventDefault();
       clearAuthError();
       const email = document.getElementById("loginEmail").value.trim();
-      if (!email)                     { showAuthError("Type your email above first, then click Forgot Password."); return; }
-      if (!/\S+@\S+\.\S+/.test(email)){ showAuthError("Please enter a valid email address."); return; }
-
+      if (!email)                      { showAuthError("Type your email above first, then click Forgot Password."); return; }
+      if (!/\S+@\S+\.\S+/.test(email)) { showAuthError("Please enter a valid email address."); return; }
       try {
         await sendPasswordResetEmail(auth, email);
-        showAuthError(
-          "✅ Reset email sent to " + email + ". Check your inbox & spam folder.",
-          "#00e676"
-        );
+        showAuthError("✅ Reset email sent to " + email + ". Check inbox & spam.", "#00e676");
       } catch (err) {
-        console.error("Password reset error:", err.code, err.message);
         showAuthError(err.code === "auth/user-not-found"
           ? "No account found with that email. Please sign up."
-          : friendlyError(err.code)
-        );
+          : friendlyError(err.code));
       }
     });
   }
-
 });
 
-// ── Logout ────────────────────────────────────────────────────────
+// Logout
 window.logout = async function () {
   if (ordersUnsubscribe) { ordersUnsubscribe(); ordersUnsubscribe = null; }
   await signOut(auth);
@@ -310,7 +355,6 @@ function updateCartUI() {
   const emptyMsg = document.getElementById("emptyCartMsg");
   cartList.innerHTML = "";
   let total = 0;
-
   cart.forEach((item, index) => {
     const li = document.createElement("li");
     li.className = "cartItem";
@@ -325,13 +369,20 @@ function updateCartUI() {
     cartList.appendChild(li);
     total += item.price * item.qty;
   });
-
   totalEl.innerText      = "₹" + total;
   emptyMsg.style.display = cart.length === 0 ? "block" : "none";
 }
 
 // ══════════════════════════════════════════════════════════════════
 //  UPI PAYMENT FLOW
+//
+//  NEW FLOW for UPI:
+//  User pays → clicks "I Have Paid" → checkout unlocks →
+//  Order saved as "Pending Payment" →
+//  Admin confirms payment in dashboard → status → "Preparing" →
+//  Customer gets browser notification.
+//
+//  Cash: order goes directly to "Preparing" as before.
 // ══════════════════════════════════════════════════════════════════
 
 window.handlePaymentChange = function () {
@@ -341,7 +392,6 @@ window.handlePaymentChange = function () {
 
   if (upiSection) upiSection.style.display = "none";
 
-  // Reset UPI state on payment method switch
   upiPaymentConfirmed       = false;
   checkoutBtn.innerText     = "Checkout →";
   checkoutBtn.disabled      = false;
@@ -351,17 +401,17 @@ window.handlePaymentChange = function () {
     const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
     if (total === 0) { showToast("⚠ Add items to cart first!"); return; }
 
-    const upiLink = `upi://pay?pa=${UPI_ID}&pn=${UPI_NAME}&am=${total}&cu=INR`;
-    const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
+    const upiLink  = `upi://pay?pa=${UPI_ID}&pn=${UPI_NAME}&am=${total}&cu=INR`;
+    const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    document.getElementById("upiAmount").innerText = total;
+    document.getElementById("upiIdText").innerText = UPI_ID;
 
     const upiQR    = document.getElementById("upiQR");
     const payBtn   = document.getElementById("upiPayBtn");
     const upiLabel = document.getElementById("upiLabel");
     const upiNote  = document.getElementById("upiNote");
-
-    document.getElementById("upiAmount").innerText = total;
-    document.getElementById("upiIdText").innerText = UPI_ID;
 
     if (isMobile) {
       upiQR.style.display  = "none";
@@ -382,7 +432,6 @@ window.handlePaymentChange = function () {
     checkoutBtn.disabled      = true;
     checkoutBtn.style.opacity = "0.45";
   }
-  // Cash: checkout immediately available
 };
 
 window.confirmUpiPayment = function () {
@@ -390,20 +439,22 @@ window.confirmUpiPayment = function () {
   const confirmBtn  = document.getElementById("upiConfirmBtn");
   const checkoutBtn = document.getElementById("checkoutBtn");
   if (confirmBtn) {
-    confirmBtn.innerText         = "✅ Payment Confirmed";
+    confirmBtn.innerText         = "✅ Payment Done";
     confirmBtn.disabled          = true;
     confirmBtn.style.background  = "#22c55e";
     confirmBtn.style.borderColor = "#22c55e";
     confirmBtn.style.color       = "#fff";
   }
+  // ← for UPI the button now says "Place Order →"
+  // Order will be saved as "Pending Payment" — admin must confirm
   checkoutBtn.innerText     = "Place Order →";
   checkoutBtn.disabled      = false;
   checkoutBtn.style.opacity = "1";
-  showToast("✅ Payment confirmed! Now click Place Order.", 4000);
+  showToast("✅ Payment done! Click Place Order — admin will verify & start your order.", 5000);
 };
 
 // ══════════════════════════════════════════════════════════════════
-//  CHECKOUT — uses Firestore token counter
+//  CHECKOUT
 // ══════════════════════════════════════════════════════════════════
 
 window.checkout = async function () {
@@ -425,9 +476,13 @@ window.checkout = async function () {
   btn.innerText = "Placing order...";
 
   try {
-    // Get a persistent token from Firestore (never resets on refresh)
     const token = await getNextToken();
     const total  = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+    // ── KEY CHANGE ─────────────────────────────────────────────────
+    // UPI orders start as "Pending Payment" — admin must verify payment
+    // before kitchen starts. Cash goes directly to "Preparing".
+    const initialStatus = payment === "UPI" ? "Pending Payment" : "Preparing";
 
     await addDoc(collection(db, "orders"), {
       uid:              user.uid,
@@ -437,15 +492,19 @@ window.checkout = async function () {
       items:            JSON.parse(JSON.stringify(cart)),
       total,
       token,
-      status:           "Preparing",
+      status:           initialStatus,
       payment,
-      paymentConfirmed: payment === "Cash" ? true : upiPaymentConfirmed,
+      paymentConfirmed: payment === "Cash",   // only pre-confirmed for Cash
       time:             new Date(),
     });
 
-    showToast("✅ Order placed! Token #" + token, 5000);
+    if (payment === "UPI") {
+      showToast("⏳ Order placed! Waiting for admin to confirm your UPI payment. Token #" + token, 7000);
+    } else {
+      showToast("✅ Order placed! Token #" + token, 5000);
+    }
 
-    // Reset cart & payment UI
+    // Reset
     cart                = [];
     upiPaymentConfirmed = false;
     updateCartUI();
@@ -474,7 +533,7 @@ window.checkout = async function () {
 };
 
 // ══════════════════════════════════════════════════════════════════
-//  ORDER CANCELLATION — within 60 seconds, only if Preparing
+//  ORDER CANCELLATION — within 60 seconds, Preparing or Pending Payment
 // ══════════════════════════════════════════════════════════════════
 
 window.cancelOrder = async function (orderId, btnEl) {
@@ -485,7 +544,6 @@ window.cancelOrder = async function (orderId, btnEl) {
     await updateDoc(doc(db, "orders", orderId), { status: "Cancelled" });
     showToast("🚫 Order cancelled.");
   } catch (err) {
-    console.error("Cancel error:", err);
     showToast("❌ Could not cancel. Try again.");
     btnEl.disabled  = false;
     btnEl.innerText = "Cancel";
@@ -528,6 +586,9 @@ function startOrdersListener(user) {
       return tA - tB;
     });
 
+    // ── Check for status changes → fire notifications ──────────────
+    checkStatusChanges(userOrders);
+
     ordersList.innerHTML = "";
     if (userOrders.length === 0) {
       ordersList.innerHTML = `<li class="noOrders">No orders placed yet.</li>`;
@@ -535,10 +596,11 @@ function startOrdersListener(user) {
     }
 
     const sc = {
-      Preparing: "statusPreparing",
-      Ready:     "statusReady",
-      Delivered: "statusDelivered",
-      Cancelled: "statusCancelled"
+      "Pending Payment": "statusPendingPayment",
+      "Preparing":       "statusPreparing",
+      "Ready":           "statusReady",
+      "Delivered":       "statusDelivered",
+      "Cancelled":       "statusCancelled",
     };
 
     const now = Date.now();
@@ -547,19 +609,26 @@ function startOrdersListener(user) {
       const li = document.createElement("li");
       li.className = "liveOrderItem";
 
-      // Cancel button: only if Preparing and placed within 60 seconds
       const orderTime  = data.time?.toMillis ? data.time.toMillis() : 0;
       const ageSeconds = (now - orderTime) / 1000;
-      const canCancel  = data.status === "Preparing" && ageSeconds < 60;
+      // Allow cancel within 60s for Preparing OR Pending Payment
+      const canCancel  = (data.status === "Preparing" || data.status === "Pending Payment")
+                          && ageSeconds < 60;
 
       const cancelHtml = canCancel
         ? `<button class="cancelOrderBtn" onclick="cancelOrder('${data._id}', this)">✕ Cancel</button>`
+        : "";
+
+      // Helpful hint for pending payment
+      const pendingHint = data.status === "Pending Payment"
+        ? `<span class="pendingHint">⏳ Waiting for admin to confirm your UPI payment</span>`
         : "";
 
       li.innerHTML = `
         <div class="loLeft">
           <span class="loToken">Token #${data.token}</span>
           <span class="loItems">${data.items.map(i => `${i.name} ×${i.qty}`).join(", ")}</span>
+          ${pendingHint}
           ${cancelHtml}
         </div>
         <div class="loRight">

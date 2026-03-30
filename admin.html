@@ -7,118 +7,73 @@
   <title>Smart Canteen – Admin</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* ── Admin Login Screen ── */
     #adminLoginScreen {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      position: relative;
-      z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; position: relative; z-index: 10;
     }
     .adminLoginCard {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 44px 40px;
-      width: 100%;
-      max-width: 380px;
-      text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 44px 40px; width: 100%;
+      max-width: 380px; text-align: center;
     }
     .adminLoginCard h2 {
-      font-family: var(--display);
-      font-size: 1.4rem;
-      color: var(--accent);
-      letter-spacing: 2px;
-      margin-bottom: 6px;
+      font-family: var(--display); font-size: 1.4rem;
+      color: var(--accent); letter-spacing: 2px; margin-bottom: 6px;
     }
-    .adminLoginCard p {
-      font-size: 0.75rem;
-      color: var(--textDim);
-      margin-bottom: 28px;
-      letter-spacing: 0.5px;
+    .adminLoginCard > p {
+      font-size: 0.75rem; color: var(--textDim);
+      margin-bottom: 28px; letter-spacing: 0.5px;
     }
     .adminGoogleBtn {
-      width: 100%;
-      padding: 12px;
-      background: #fff;
-      color: #1f1f1f;
-      border: 1px solid #dadce0;
-      border-radius: 8px;
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 600;
-      font-size: 0.88rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      transition: box-shadow 0.15s;
-      margin-bottom: 14px;
+      width: 100%; padding: 12px; background: #fff; color: #1f1f1f;
+      border: 1px solid #dadce0; border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace; font-weight: 600;
+      font-size: 0.88rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; gap: 10px;
+      transition: box-shadow 0.15s; margin-bottom: 14px;
     }
     .adminGoogleBtn:hover    { box-shadow: 0 1px 6px rgba(0,0,0,0.2); }
     .adminGoogleBtn:disabled { opacity: 0.6; cursor: not-allowed; }
-    #adminLoginError {
-      color: var(--red);
-      font-size: 0.75rem;
-      min-height: 18px;
-      margin-top: 10px;
-    }
+    #adminLoginError { color: var(--red); font-size: 0.75rem; min-height: 18px; margin-top: 10px; }
     #adminLogoutBtn {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      padding: 6px 14px;
-      border: 1px solid var(--red);
-      background: transparent;
-      color: var(--red);
-      border-radius: 5px;
-      cursor: pointer;
-      transition: all 0.15s;
+      font-family: var(--mono); font-size: 0.7rem; padding: 6px 14px;
+      border: 1px solid var(--red); background: transparent; color: var(--red);
+      border-radius: 5px; cursor: pointer; transition: all 0.15s;
     }
     #adminLogoutBtn:hover { background: var(--red); color: #fff; }
 
-    /* ── Admin-specific badge styles ── */
+    /* Payment badge */
     .payBadge {
-      display: inline-block;
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-weight: 600;
-      vertical-align: middle;
+      display: inline-block; font-size: 0.7rem; padding: 2px 8px;
+      border-radius: 20px; font-weight: 600; vertical-align: middle;
     }
-    .btnVerifyPayment {
-      display: inline-block;
-      font-size: 0.72rem;
-      padding: 3px 10px;
-      border-radius: 20px;
-      border: 1px solid #4ade80;
-      background: rgba(74,222,128,0.1);
-      color: #4ade80;
+
+    /* Confirm & Prepare button — amber, prominent */
+    .btnConfirmPay {
+      background: #ffab00 !important;
+      color: #000 !important;
+      font-weight: 700;
+      font-size: 0.72rem !important;
+      padding: 10px 14px !important;
+      border-radius: 6px;
+      border: none;
       cursor: pointer;
-      margin-left: 6px;
-      font-weight: 600;
-      transition: background 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      animation: pulse 1.8s infinite;
     }
-    .btnVerifyPayment:hover { background: rgba(74,222,128,0.22); }
-    .payVerified {
-      display: inline-block;
-      font-size: 0.72rem;
-      padding: 3px 10px;
-      border-radius: 20px;
-      border: 1px solid rgba(74,222,128,0.4);
-      color: #4ade80;
-      margin-left: 6px;
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,171,0,0.4); }
+      50%       { box-shadow: 0 0 0 6px rgba(255,171,0,0); }
     }
-    .orderTime {
-      font-size: 0.72rem;
-      opacity: 0.5;
-    }
+
+    .orderTime { font-size: 0.72rem; opacity: 0.5; }
     .statBox.accent { border-color: rgba(167,139,250,0.27); }
   </style>
 </head>
 <body>
 
-  <!-- ══ ADMIN LOGIN SCREEN ════════════════════════════════════ -->
+  <!-- ADMIN LOGIN -->
   <div id="adminLoginScreen">
     <div class="adminLoginCard">
       <h2>🍽 Admin Panel</h2>
@@ -136,7 +91,7 @@
     </div>
   </div>
 
-  <!-- ══ ADMIN DASHBOARD ════════════════════════════════════════ -->
+  <!-- ADMIN DASHBOARD -->
   <div id="adminDashboard" style="display:none;">
 
     <header>
@@ -151,7 +106,6 @@
       </div>
     </header>
 
-    <!-- Stats -->
     <div class="stats">
       <div class="statBox">
         <h3>Total Orders</h3>
@@ -167,9 +121,9 @@
       </div>
     </div>
 
-    <!-- Filters -->
     <div class="filters">
-      <button id="btnAll"       class="active">All Active</button>
+      <button id="btnAll" class="active">All Active</button>
+      <button id="btnPendingPayment">⚠ Pending Payment</button>
       <button id="btnPreparing">Preparing</button>
       <button id="btnReady">Ready</button>
       <button id="btnDelivered">Delivered</button>
@@ -177,7 +131,6 @@
       <button id="btnCancelled">Cancelled</button>
     </div>
 
-    <!-- Two-column layout -->
     <div id="panelLayout">
       <div id="ordersPanel">
         <div class="panelTitle"><span></span> Active Orders</div>
@@ -191,14 +144,12 @@
       </div>
     </div>
 
-  </div><!-- /#adminDashboard -->
+  </div>
 
   <div id="toast"></div>
-
   <script type="module" src="admin.js"></script>
 
   <script>
-    // Filter highlight sync
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".filters button").forEach(btn => {
         btn.addEventListener("click", () => {
