@@ -164,8 +164,19 @@
           <span class="sectionMeta">Fresh today</span>
         </div>
 
-        <div class="menuGrid">
-          <div class="card">
+        <!-- Category Tabs -->
+        <div class="categoryTabs">
+          <button class="catTab active" onclick="filterCategory('all')">🍽 All</button>
+          <button class="catTab" onclick="filterCategory('main')">🍔 Main Course</button>
+          <button class="catTab" onclick="filterCategory('drinks')">🥤 Drinks</button>
+          <button class="catTab" onclick="filterCategory('snacks')">🍿 Snacks</button>
+          <button class="catTab" onclick="filterCategory('desserts')">🍰 Desserts</button>
+        </div>
+
+        <div class="menuGrid" id="menuGrid">
+
+          <!-- Main Course -->
+          <div class="card" data-category="main">
             <div class="cardImgWrap">
               <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80" alt="Burger">
               <span class="cardBadge">Popular</span>
@@ -180,7 +191,7 @@
             </div>
           </div>
 
-          <div class="card">
+          <div class="card" data-category="main">
             <div class="cardImgWrap">
               <img src="https://images.unsplash.com/photo-1594007654729-407eedc4be65?w=400&q=80" alt="Pizza">
             </div>
@@ -194,21 +205,7 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&q=80" alt="Juice">
-            </div>
-            <div class="cardBody">
-              <h4>Juice</h4>
-              <p class="cardDesc">Cold pressed, fresh fruit</p>
-              <div class="cardFooter">
-                <span class="price">₹40</span>
-                <button onclick="addToCart('Juice', 40)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
+          <div class="card" data-category="main">
             <div class="cardImgWrap">
               <img src="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&q=80" alt="Sandwich">
             </div>
@@ -221,6 +218,153 @@
               </div>
             </div>
           </div>
+
+          <div class="card" data-category="main">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80" alt="Fried Rice">
+            </div>
+            <div class="cardBody">
+              <h4>Fried Rice</h4>
+              <p class="cardDesc">Wok-tossed, egg & veggies</p>
+              <div class="cardFooter">
+                <span class="price">₹80</span>
+                <button onclick="addToCart('Fried Rice', 80)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drinks -->
+          <div class="card" data-category="drinks">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&q=80" alt="Juice">
+              <span class="cardBadge">Fresh</span>
+            </div>
+            <div class="cardBody">
+              <h4>Juice</h4>
+              <p class="cardDesc">Cold pressed, fresh fruit</p>
+              <div class="cardFooter">
+                <span class="price">₹40</span>
+                <button onclick="addToCart('Juice', 40)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" data-category="drinks">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80" alt="Milkshake">
+            </div>
+            <div class="cardBody">
+              <h4>Milkshake</h4>
+              <p class="cardDesc">Thick, creamy & chilled</p>
+              <div class="cardFooter">
+                <span class="price">₹60</span>
+                <button onclick="addToCart('Milkshake', 60)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" data-category="drinks">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80" alt="Coffee">
+            </div>
+            <div class="cardBody">
+              <h4>Coffee</h4>
+              <p class="cardDesc">Hot brewed, rich aroma</p>
+              <div class="cardFooter">
+                <span class="price">₹30</span>
+                <button onclick="addToCart('Coffee', 30)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Snacks -->
+          <div class="card" data-category="snacks">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&q=80" alt="French Fries">
+              <span class="cardBadge">Popular</span>
+            </div>
+            <div class="cardBody">
+              <h4>French Fries</h4>
+              <p class="cardDesc">Crispy golden, salted</p>
+              <div class="cardFooter">
+                <span class="price">₹50</span>
+                <button onclick="addToCart('French Fries', 50)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" data-category="snacks">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80" alt="Samosa">
+            </div>
+            <div class="cardBody">
+              <h4>Samosa</h4>
+              <p class="cardDesc">Crispy, spiced potato filling</p>
+              <div class="cardFooter">
+                <span class="price">₹20</span>
+                <button onclick="addToCart('Samosa', 20)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" data-category="snacks">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=400&q=80" alt="Spring Rolls">
+            </div>
+            <div class="cardBody">
+              <h4>Spring Rolls</h4>
+              <p class="cardDesc">Crunchy veggie rolls</p>
+              <div class="cardFooter">
+                <span class="price">₹40</span>
+                <button onclick="addToCart('Spring Rolls', 40)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desserts -->
+          <div class="card" data-category="desserts">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80" alt="Ice Cream">
+              <span class="cardBadge">New</span>
+            </div>
+            <div class="cardBody">
+              <h4>Ice Cream</h4>
+              <p class="cardDesc">Soft serve, 3 flavours</p>
+              <div class="cardFooter">
+                <span class="price">₹50</span>
+                <button onclick="addToCart('Ice Cream', 50)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" data-category="desserts">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&q=80" alt="Cake">
+            </div>
+            <div class="cardBody">
+              <h4>Cake Slice</h4>
+              <p class="cardDesc">Moist chocolate sponge</p>
+              <div class="cardFooter">
+                <span class="price">₹60</span>
+                <button onclick="addToCart('Cake Slice', 60)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" data-category="desserts">
+            <div class="cardImgWrap">
+              <img src="https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80" alt="Gulab Jamun">
+            </div>
+            <div class="cardBody">
+              <h4>Gulab Jamun</h4>
+              <p class="cardDesc">Soft, syrup-soaked sweets</p>
+              <div class="cardFooter">
+                <span class="price">₹30</span>
+                <button onclick="addToCart('Gulab Jamun', 30)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- Live Orders section -->
@@ -288,6 +432,14 @@
       document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
       const err = document.getElementById('authError');
       err.innerText = ''; err.style.display = 'none'; err.style.color = '';
+    };
+
+    window.filterCategory = function (cat) {
+      document.querySelectorAll('.catTab').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      document.querySelectorAll('#menuGrid .card').forEach(card => {
+        card.style.display = (cat === 'all' || card.dataset.category === cat) ? 'block' : 'none';
+      });
     };
   </script>
 </body>
