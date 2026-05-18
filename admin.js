@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, collection, onSnapshot, doc, updateDoc,
+  getFirestore, collection, onSnapshot, doc, updateDoc, setDoc,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
   getAuth,
@@ -51,17 +51,24 @@ function showAdminDashboard(user) {
   const emailEl = document.getElementById("adminUserEmail");
   if (emailEl) emailEl.innerText = user.email;
   startOrdersListener();
+  startInventoryListener();
 }
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
     if (ordersUnsub) { ordersUnsub(); ordersUnsub = null; }
     showAdminLogin();
     return;
   }
   if (user.email !== ADMIN_EMAIL) {
-    signOut(auth);
-    showAdminLogin("⛔ Access denied. This panel is restricted to the admin account only.");
+    await signOut(auth);
+    // Re-show the login screen with a friendly error and re-enable the button
+    document.getElementById("adminLoginScreen").style.display = "flex";
+    document.getElementById("adminDashboard").style.display   = "none";
+    const errEl = document.getElementById("adminLoginError");
+    if (errEl) errEl.innerText = "⛔ Access denied. Only the registered admin can log in here.";
+    const btn = document.getElementById("adminGoogleBtn");
+    if (btn) { btn.disabled = false; btn.innerText = "Sign in with Google"; }
     return;
   }
   showAdminDashboard(user);
@@ -132,6 +139,24 @@ document.addEventListener("DOMContentLoaded", () => {
       renderOrders();
     });
   });
+
+  // Inventory toggle
+  const invBtn = document.getElementById("btnInventory");
+  if (invBtn) {
+    invBtn.addEventListener("click", () => {
+      const invPanel  = document.getElementById("inventoryPanel");
+      const ordPanel  = document.getElementById("panelLayout");
+      const showing   = invPanel.style.display !== "none";
+      invPanel.style.display  = showing ? "none"  : "block";
+      ordPanel.style.display  = showing ? "grid"  : "none";
+      document.querySelectorAll(".filters button:not(#btnInventory)").forEach(b => {
+        b.style.display = showing ? "" : "none";
+      });
+      invBtn.textContent = showing ? "\ud83d\udce6 Stock Manager" : "\u25c0 Back to Orders";
+      invBtn.classList.toggle("active", !showing);
+      if (!showing) renderInventory();
+    });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -163,7 +188,7 @@ function showToast(msg) {
 
 // ══════════════════════════════════════════════════════════════════
 //  LIVE ORDERS LISTENER
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════���═══════════════════════
 
 function startOrdersListener() {
   if (ordersUnsub) return;
@@ -267,7 +292,7 @@ function isToday(ts) {
 
 // ══════════════════════════════════════════════════════════════════
 //  RENDER ACTIVE ORDERS
-// ══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════���═════════════════════
 
 function renderOrders() {
   const container = document.getElementById("adminOrders");
@@ -297,19 +322,24 @@ function renderOrders() {
 
     const contact = data.email || data.phone || "";
 
-    const payColors = { UPI: "#a78bfa", Cash: "#4ade80" };
+    const payColors = { UPI: "#C850C0", Cash: "#A8FF3E" };
     const pc        = payColors[data.payment] || "#888";
     const payBadge  = `<span class="payBadge" style="background:${pc}22;color:${pc};border:1px solid ${pc}44;">${data.payment || "Cash"}</span>`;
 
     const info = document.createElement("div");
     info.className = "orderInfo";
     info.innerHTML = `
-      <b>Token #${data.token} &nbsp;|&nbsp; ${data.name}</b>
-      ${contact ? `<br><span class="orderContact">${contact}</span>` : ""}
-      <br><span class="orderItems">${data.items.map(i => `${i.name} ×${i.qty}`).join(", ")}</span>
-      <br><span class="orderMeta">₹${data.total} &nbsp;·&nbsp; ${payBadge}</span>
-      <br><span class="status${data.status.replace(" ", "")}">${data.status}</span>
-      ${data.time ? `<span class="orderTime"> &nbsp;·&nbsp; ${formatTime(data.time)}</span>` : ""}
+      <div class="orderTokenRow">
+        <b>#${data.token}</b>
+        <span class="orderName">${data.name} ${contact ? `(${contact})` : ""}</span>
+      </div>
+      <div class="orderItems">${data.items.map(i => `${i.qty}x ${i.name}`).join(", ")}</div>
+      <div class="orderMetaRow">
+        <span style="font-family:var(--font-display); font-weight:700; color:#FFBE00;">₹${data.total}</span>
+        ${payBadge}
+        <span class="status${data.status.replace(" ", "")}">${data.status}</span>
+        ${data.time ? `<span style="color:#666; font-size:0.8rem;">${formatTime(data.time)}</span>` : ""}
+      </div>
     `;
 
     const btn = document.createElement("button");
@@ -394,14 +424,144 @@ function renderHistory() {
     card.className = "orderCard historyCard";
     card.innerHTML = `
       <div class="orderInfo">
-        <b>Token #${data.token} &nbsp;|&nbsp; ${data.name}</b>
-        ${contact ? `<br><span class="orderContact">${contact}</span>` : ""}
-        <br><span class="orderItems">${data.items.map(i => `${i.name} ×${i.qty}`).join(", ")}</span>
-        <br><span class="orderMeta">₹${data.total} &nbsp;·&nbsp; ${data.payment || "Cash"}</span>
-        <br><span class="statusDelivered">Delivered ✓</span>
-        ${data.time ? `<span class="orderTime"> &nbsp;·&nbsp; ${formatTime(data.time)}</span>` : ""}
+        <div class="orderTokenRow">
+          <b>#${data.token}</b>
+          <span class="orderName">${data.name} ${contact ? `(${contact})` : ""}</span>
+        </div>
+        <div class="orderItems">${data.items.map(i => `${i.qty}x ${i.name}`).join(", ")}</div>
+        <div class="orderMetaRow">
+          <span style="font-family:var(--font-display); font-weight:700; color:#A8FF3E;">₹${data.total}</span>
+          <span class="payBadge" style="border:1px solid #aaa; color:#aaa;">${data.payment || "Cash"}</span>
+          <span class="statusDelivered">Delivered ✓</span>
+          ${data.time ? `<span style="color:#666; font-size:0.8rem;">${formatTime(data.time)}</span>` : ""}
+        </div>
       </div>
     `;
     container.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  INVENTORY / STOCK MANAGEMENT
+// ══════════════════════════════════════════════════════════════════
+
+const MENU_ITEMS = [
+  { name: "Drop Burger",       slug: "burger",         emoji: "🍔", category: "Main Course" },
+  { name: "Loaded Pizza",      slug: "pizza",          emoji: "🍕", category: "Main Course" },
+  { name: "Grill Sandwich",    slug: "sandwich",       emoji: "🥪", category: "Main Course" },
+  { name: "Wok Fried Rice",    slug: "fried-rice",     emoji: "🍳", category: "Main Course" },
+  { name: "Spicy Noodles",     slug: "noodles",        emoji: "🍝", category: "Main Course" },
+  { name: "Butter Chicken",    slug: "butter-chicken", emoji: "���", category: "Main Course" },
+  { name: "Neon Fries",        slug: "french-fries",   emoji: "🍟", category: "Snacks" },
+  { name: "Classic Samosa",    slug: "samosa",         emoji: "🥟", category: "Snacks" },
+  { name: "Crispy Tacos",      slug: "tacos",          emoji: "🌮", category: "Snacks" },
+  { name: "Nachos Grande",     slug: "nachos",         emoji: "🧀", category: "Snacks" },
+  { name: "Chicken Nuggets",   slug: "nuggets",        emoji: "🍗", category: "Snacks" },
+  { name: "Thick Shake",       slug: "milkshake",      emoji: "🧋", category: "Drinks" },
+  { name: "Black Coffee",      slug: "coffee",         emoji: "☕", category: "Drinks" },
+  { name: "Cold Coffee",       slug: "cold-coffee",    emoji: "🧊", category: "Drinks" },
+  { name: "Lemon Iced Tea",    slug: "iced-tea",       emoji: "🍹", category: "Drinks" },
+  { name: "Fresh Lime Soda",   slug: "lime-soda",      emoji: "🥤", category: "Drinks" },
+  { name: "Choco Lava Cake",   slug: "lava-cake",      emoji: "🍫", category: "Desserts" },
+  { name: "Sizzling Brownie",  slug: "brownie",        emoji: "🥧", category: "Desserts" },
+  { name: "Classic Waffles",   slug: "waffles",        emoji: "🧇", category: "Desserts" }
+];
+
+const currentStock = {};
+
+function startInventoryListener() {
+  onSnapshot(collection(db, "menu"), (snapshot) => {
+    snapshot.forEach(d => { currentStock[d.id] = d.data().qty ?? 0; });
+    // Live-update inputs if panel is open
+    const panel = document.getElementById("inventoryPanel");
+    if (panel && panel.style.display !== "none") {
+      MENU_ITEMS.forEach(item => {
+        const input    = document.getElementById("qty-" + item.slug);
+        const statusEl = document.getElementById("invStatus-" + item.slug);
+        if (input && currentStock[item.slug] !== undefined) {
+          input.value = currentStock[item.slug];
+          if (statusEl) updateInventoryStatus(statusEl, currentStock[item.slug]);
+        }
+      });
+    }
+  });
+}
+
+function updateInventoryStatus(el, qty) {
+  el.className = "inventoryStatus";
+  if (qty <= 0)      { el.textContent = "⛔ Out of Stock"; el.classList.add("red"); }
+  else if (qty <= 5) { el.textContent = "⚠ Low — " + qty + " left"; el.classList.add("amber"); }
+  else               { el.textContent = "✓ In Stock — " + qty + " units"; el.classList.add("green"); }
+}
+
+function renderInventory() {
+  const grid = document.getElementById("inventoryGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  MENU_ITEMS.forEach((item, idx) => {
+    const qty  = currentStock[item.slug] ?? "";
+    const card = document.createElement("div");
+    card.className = "inventoryCard";
+    card.style.animationDelay = (idx * 0.04) + "s";
+    card.innerHTML = `
+      <div class="inventoryItemName">
+        <span class="inventoryEmoji">${item.emoji}</span>
+        <div>
+          <div style="font-weight:700;">${item.name}</div>
+          <div class="inventoryCategory">${item.category}</div>
+        </div>
+      </div>
+      <div class="inventoryQtyRow">
+        <input type="number" min="0" max="999" value="${qty}"
+               class="inventoryQtyInput" id="qty-${item.slug}" placeholder="0" />
+        <button class="inventorySaveBtn" id="saveBtn-${item.slug}"
+                data-slug="${item.slug}" data-name="${item.name}">Save</button>
+      </div>
+      <div class="inventoryStatus ${qty === "" ? "" : qty <= 0 ? "red" : qty <= 5 ? "amber" : "green"}"
+           id="invStatus-${item.slug}">
+        ${qty === "" ? "Not set yet" : qty <= 0 ? "⛔ Out of Stock" : qty <= 5 ? "⚠ Low — " + qty + " left" : "✓ In Stock — " + qty + " units"}
+      </div>
+    `;
+    grid.appendChild(card);
+
+    // Live preview while typing
+    const input    = document.getElementById("qty-" + item.slug);
+    const statusEl = document.getElementById("invStatus-" + item.slug);
+    if (input && statusEl) {
+      input.addEventListener("input", () => {
+        updateInventoryStatus(statusEl, parseInt(input.value) || 0);
+      });
+    }
+
+    // Save button
+    const saveBtn = document.getElementById("saveBtn-" + item.slug);
+    if (saveBtn) {
+      saveBtn.addEventListener("click", async () => {
+        const slug = saveBtn.dataset.slug;
+        const name = saveBtn.dataset.name;
+        const inp  = document.getElementById("qty-" + slug);
+        const qty  = Math.max(0, parseInt(inp.value) || 0);
+        inp.value  = qty;
+        saveBtn.disabled  = true;
+        saveBtn.innerText = "Saving...";
+        try {
+          await setDoc(doc(db, "menu", slug), { qty, updatedAt: new Date() });
+          currentStock[slug] = qty;
+          saveBtn.innerText = "✓ Saved!";
+          saveBtn.classList.add("saved");
+          showToast("✅ " + name + " → " + qty + " units saved");
+          setTimeout(() => {
+            saveBtn.innerText = "Save";
+            saveBtn.classList.remove("saved");
+            saveBtn.disabled  = false;
+          }, 2000);
+        } catch (err) {
+          showToast("❌ Failed to save. Try again.");
+          saveBtn.innerText = "Save";
+          saveBtn.disabled  = false;
+        }
+      });
+    }
   });
 }

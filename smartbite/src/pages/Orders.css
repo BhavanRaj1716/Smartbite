@@ -1,0 +1,56 @@
+.orders-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  padding: 30px 20px 60px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.blob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.15; pointer-events: none; z-index: 0; }
+.blob1 { width: 500px; height: 500px; background: #43e97b; top: -150px; left: -150px; }
+.blob2 { width: 400px; height: 400px; background: #667eea; bottom: -100px; right: -100px; }
+
+.orders-container { max-width: 700px; margin: 0 auto; position: relative; z-index: 10; }
+
+.orders-header { display: flex; align-items: center; gap: 20px; margin-bottom: 28px; }
+.orders-header h2 { font-size: 1.6rem; font-weight: 800; }
+
+.back-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); padding: 8px 18px; border-radius: 50px; font-family: 'Poppins', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+.back-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+.empty-orders { text-align: center; padding: 80px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.empty-orders p { color: rgba(255,255,255,0.5); font-size: 1.1rem; }
+
+.orders-list { display: flex; flex-direction: column; gap: 16px; }
+
+.order-card { padding: 20px 24px; }
+
+.order-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+
+.token-num { font-size: 1.1rem; font-weight: 800; background: linear-gradient(135deg, #667eea, #f5576c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-right: 10px; }
+
+.status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+.status-preparing { background: rgba(255,171,0,0.15); color: #ffab00; border: 1px solid #ffab00; }
+.status-ready { background: rgba(0,200,240,0.15); color: #00c8f0; border: 1px solid #00c8f0; }
+.status-delivered { background: rgba(67,233,123,0.15); color: #43e97b; border: 1px solid #43e97b; }
+.status-cancelled { background: rgba(255,69,96,0.15); color: #ff4560; border: 1px solid #ff4560; }
+
+.order-meta { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1rem; }
+.pay-tag { background: rgba(255,255,255,0.08); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; color: rgba(255,255,255,0.6); }
+
+.order-items { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin-bottom: 16px; }
+
+/* Progress Bar */
+.progress-bar { display: flex; align-items: center; margin-bottom: 12px; }
+
+.progress-step { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.68rem; color: rgba(255,255,255,0.3); position: relative; flex: 1; }
+.progress-step.done { color: #43e97b; }
+
+.progress-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.2); }
+.progress-step.done .progress-dot { background: #43e97b; border-color: #43e97b; box-shadow: 0 0 10px #43e97b; }
+
+.progress-line { position: absolute; top: 6px; left: 50%; width: 100%; height: 2px; background: rgba(255,255,255,0.1); z-index: -1; }
+.progress-line.done { background: #43e97b; }
+
+.cancel-btn { background: transparent; border: 1px solid rgba(255,69,96,0.5); color: #ff4560; padding: 7px 16px; border-radius: 50px; font-family: 'Poppins', sans-serif; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+.cancel-btn:hover { background: rgba(255,69,96,0.15); }

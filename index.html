@@ -1,448 +1,651 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="canonical" href="https://smart-canteen-e44e9.web.app/" />
   <meta charset="UTF-8">
-  <meta name="description" content="Smart Canteen -  Order food from your seat with real-time tracking, live kitchen updates, and easy UPI or cash payments. Fast, simple, and smart food ordering." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Smart Canteen</title>
+  <title>SmartBite — Order Smart, Eat Fast.</title>
+  <meta name="theme-color" content="#FF4500">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SmartBite">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
   <link rel="stylesheet" href="style.css">
-  <style>
-    .googleBtn {
-      width:100%; padding:12px; margin-bottom:16px;
-      background:#fff; color:#1f1f1f; border:1px solid #dadce0;
-      border-radius:8px; font-family:'JetBrains Mono',monospace;
-      font-weight:600; font-size:0.85rem; cursor:pointer;
-      display:flex; align-items:center; justify-content:center; gap:10px;
-      transition:box-shadow 0.15s, opacity 0.15s;
-    }
-    .googleBtn:hover    { box-shadow:0 1px 6px rgba(0,0,0,0.2); }
-    .googleBtn:disabled { opacity:0.6; cursor:not-allowed; }
-    .googleBtn svg      { flex-shrink:0; }
-
-    .authDivider {
-      display:flex; align-items:center; gap:12px;
-      margin:4px 0 16px; color:#374151;
-      font-size:0.72rem; letter-spacing:1px;
-    }
-    .authDivider::before, .authDivider::after {
-      content:''; flex:1; height:1px; background:#1c2333;
-    }
-
-    .upiPayLink {
-      display:block; width:100%; padding:11px; margin:10px 0 4px;
-      background:#00c8f0; color:#07090f; border-radius:8px;
-      text-align:center; font-family:'JetBrains Mono',monospace;
-      font-weight:700; font-size:0.85rem; text-decoration:none;
-      letter-spacing:0.5px; transition:opacity 0.15s;
-    }
-    .upiPayLink:hover { opacity:0.88; }
-
-    .forgotLink {
-      display:block; text-align:right; font-size:0.75rem;
-      color:#6b7280; text-decoration:none; margin-bottom:12px;
-      transition:color 0.15s;
-    }
-    .forgotLink:hover { color:#00c8f0; }
-
-    /* Cancel button on live orders */
-    .cancelOrderBtn {
-      font-size:0.65rem; padding:3px 9px; border-radius:20px;
-      border:1px solid #ff4560; background:rgba(255,69,96,0.08);
-      color:#ff4560; cursor:pointer;
-      font-family:'JetBrains Mono',monospace; font-weight:600;
-      transition:background 0.15s; margin-top:2px;
-    }
-    .cancelOrderBtn:hover { background:rgba(255,69,96,0.22); }
-    .cancelOrderBtn:disabled { opacity:0.4; cursor:not-allowed; }
-  </style>
 </head>
 <body>
 
-  <!-- 1. SPLASH -->
-  <div id="splashScreen">
-    <div class="splashInner">
-      <div class="splashIcon">🍽</div>
-      <h1 class="splashTitle">Smart Canteen</h1>
-      <div class="splashBar"><div class="splashProgress"></div></div>
-      <p class="splashSub">Loading your experience...</p>
-    </div>
+  <!-- Lava Lamp Background -->
+  <div class="lava-background">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
   </div>
 
-  <!-- 2. AUTH SCREEN -->
+  <!-- 1. SPLASH -->
+  <div id="splashScreen">
+    <div class="splashIcon">🔥</div>
+    <h1 class="splashTitle">SMARTBITE</h1>
+  </div>
+
+  <!-- 2. AUTH SCREEN ("THE GATE") -->
   <div id="authScreen" style="display:none;">
-    <div class="authLeft">
-      <div class="authBranding">
-        <span class="authBrandIcon">🍽</span>
-        <h2 class="authBrandName">Smart Canteen</h2>
-        <p class="authBrandTagline">Order food from your seat.<br>Fast, simple, smart.</p>
-        <ul class="authFeatureList">
-          <li>✦ Real-time order tracking</li>
-          <li>✦ UPI &amp; cash payments</li>
-          <li>✦ Live kitchen updates</li>
-          <li>✦ Cancel order within 1 minute</li>
-        </ul>
-      </div>
+    <div class="orbiting-emojis">
+      <div class="orbit-emoji">🍔</div>
+      <div class="orbit-emoji">🍕</div>
+      <div class="orbit-emoji">☕</div>
+      <div class="orbit-emoji">🌮</div>
     </div>
-
-    <div class="authRight">
-      <div class="authCard">
-        <div class="authCardHeader">
-          <button class="authTab active" id="tabLogin"  onclick="switchTab('login')">Login</button>
-          <button class="authTab"        id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
-        </div>
-
-        <button class="googleBtn" id="googleBtn">
-          <svg width="18" height="18" viewBox="0 0 48 48">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          Continue with Google
-        </button>
-        <div class="authDivider">or</div>
-
-        <!-- Login Form -->
-        <div id="loginForm">
-          <div class="inputGroup">
-            <label>Email Address</label>
-            <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
-          </div>
-          <div class="inputGroup">
-            <label>Password</label>
-            <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password">
-          </div>
-          <a href="#" id="forgotPassword" class="forgotLink">Forgot Password?</a>
-          <button class="authSubmit" id="loginBtn">Login →</button>
-        </div>
-
-        <!-- Signup Form -->
-        <div id="signupForm" style="display:none;">
-          <div class="inputGroup">
-            <label>Full Name</label>
-            <input type="text" id="signupName" placeholder="Your name" autocomplete="name">
-          </div>
-          <div class="inputGroup">
-            <label>Email Address</label>
-            <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email">
-          </div>
-          <div class="inputGroup">
-            <label>Password</label>
-            <input type="password" id="signupPassword" placeholder="Min 6 characters" autocomplete="new-password">
-          </div>
-          <button class="authSubmit" id="signupBtn">Create Account →</button>
-          <p style="font-size:0.75rem;opacity:0.55;margin-top:10px;text-align:center;">
-            A verification link will be sent to your email.
-          </p>
-        </div>
-
-        <p id="authError" class="authError" style="display:none;"></p>
+    
+    <div class="authCard">
+      <h2 class="authTitle">THE GATE</h2>
+      
+      <div class="authCardHeader">
+        <button class="authTab active" id="tabLogin" onclick="switchTab('login')">Login</button>
+        <button class="authTab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
       </div>
+
+      <button class="googleBtn btn" id="googleBtn">
+        <svg width="20" height="20" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+        </svg>
+        Continue with Google
+      </button>
+      <div class="authDivider">— or —</div>
+
+      <!-- Login Form -->
+      <div id="loginForm">
+        <div class="inputGroup">
+          <input type="email" id="loginEmail" placeholder="Email Address">
+        </div>
+        <div class="inputGroup">
+          <input type="password" id="loginPassword" placeholder="Password">
+        </div>
+        <a href="#" id="forgotPassword" class="forgotLink">Forgot Password?</a>
+        <button class="authSubmit btn" id="loginBtn">ENTER DROP</button>
+      </div>
+
+      <!-- Signup Form -->
+      <div id="signupForm" style="display:none;">
+        <div class="inputGroup">
+          <input type="text" id="signupName" placeholder="Full Name">
+        </div>
+        <div class="inputGroup">
+          <input type="email" id="signupEmail" placeholder="Email Address">
+        </div>
+        <div class="inputGroup">
+          <input type="password" id="signupPassword" placeholder="Password (Min 6)">
+        </div>
+        <button class="authSubmit btn" id="signupBtn">JOIN DROP</button>
+      </div>
+
+      <p id="authError" class="authError" style="display:none;"></p>
     </div>
   </div>
 
   <!-- 3. MAIN APP -->
   <div id="mainApp" style="display:none;">
 
-    <nav class="appNav">
-      <div class="navLogo">🍽 <span>Smart Canteen</span></div>
-      <div class="navUser">
+    <!-- Navbar -->
+    <nav class="appNav" id="appNav">
+      <div class="navLogo">SMARTBITE</div>
+      <div class="navRight">
         <div class="navUserInfo">
-          <span id="navUserName"  class="navName"></span>
-          <span id="navUserEmail" class="navEmail"></span>
+          <div id="navUserName" class="navName"></div>
+          <div id="navUserEmail" class="navEmail"></div>
         </div>
-        <button onclick="logout()" class="navLogoutBtn">Logout</button>
+        <button class="navCartBtn btn" id="navCartBtn" onclick="toggleMobileCart()">
+          🛍
+          <div class="navCartBadge" id="navCartBadge">0</div>
+        </button>
+        <button onclick="logout()" class="navLogoutBtn btn">Logout</button>
       </div>
     </nav>
 
-    <div class="appGrid">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-left">
+        <h1 class="hero-headline">
+          <span>OWN</span>
+          <span>YOUR</span>
+          <span>CRAVINGS.</span>
+        </h1>
+        <p class="hero-sub">The ultimate campus food drop. Secure your token from your seat and just pick up when it's hot. No lines. No drama.</p>
+        <div class="hero-ctas">
+          <button class="cta-primary btn" onclick="document.getElementById('menuSection').scrollIntoView({behavior:'smooth'})">🔥 Secure The Drop</button>
+          <button class="cta-secondary btn" onclick="document.getElementById('menuSection').scrollIntoView({behavior:'smooth'})">👀 Browse Menu</button>
+        </div>
+        <div class="hero-emojis">
+          <span class="hero-emoji">🍔</span>
+          <span class="hero-emoji">🍕</span>
+          <span class="hero-emoji">🧃</span>
+          <span class="hero-emoji">☕</span>
+          <span class="hero-emoji">🌮</span>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div class="phone-header">
+              <span class="phone-logo">SMARTBITE</span>
+              <span class="phone-status-dot"></span>
+            </div>
+            <div class="phone-order-card">
+              <div class="poc-label" id="pmLabel">YOUR ORDER</div>
+              <div class="poc-items" id="pmItems">🍔 Drop Burger &nbsp;+&nbsp; 🍟 Neon Fries</div>
+              <div class="poc-total" id="pmTotal">₹150</div>
+            </div>
+            <div class="phone-token-wrap">
+              <div class="phone-token-label">Token Number</div>
+              <div class="phone-token-number" id="pmToken">#12</div>
+            </div>
+            <div class="phone-steps" id="pmSteps">
+              <div class="phone-step done" id="pmStep1">
+                <div class="ps-dot"></div>
+                <div class="ps-label">Payment ✓</div>
+              </div>
+              <div class="phone-step active" id="pmStep2">
+                <div class="ps-dot"></div>
+                <div class="ps-label">Preparing 🔥</div>
+              </div>
+              <div class="phone-step" id="pmStep3">
+                <div class="ps-dot"></div>
+                <div class="ps-label">Ready</div>
+              </div>
+              <div class="phone-step" id="pmStep4">
+                <div class="ps-dot"></div>
+                <div class="ps-label">Collected</div>
+              </div>
+            </div>
+            <div class="phone-eta" id="pmEta">Est. wait: ~8 mins</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-      <!-- Menu + Orders -->
-      <section class="menuSection">
-        <div class="sectionHeader">
-          <h2 class="sectionTitle">Menu</h2>
-          <span class="sectionMeta">Fresh today</span>
+    <!-- Menu Section -->
+    <section class="menu-section" id="menuSection">
+      <h2 class="section-title">THE FLAVOUR GRID</h2>
+      
+      <div class="categoryTabs">
+        <button class="catTab active btn" onclick="filterCategory('all')">🔥 All Items</button>
+        <button class="catTab btn" onclick="filterCategory('main')">🍔 Burgers & Mains</button>
+        <button class="catTab btn" onclick="filterCategory('snacks')">🍟 Snacks</button>
+        <button class="catTab btn" onclick="filterCategory('drinks')">🥤 Drinks</button>
+        <button class="catTab btn" onclick="filterCategory('desserts')">🍰 Desserts</button>
+      </div>
+
+      <div class="menuGrid" id="menuGrid">
+        
+        <!-- Main Course -->
+        <div class="card featured" data-category="main" data-item="burger">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80" alt="Drop Burger"></div>
+          <div class="cardBadge">🔥 Bestseller</div>
+          <div class="cardPrice">₹100</div>
+          <div class="cardBody">
+            <div>
+              <h4>Drop Burger</h4>
+              <p class="cardDesc">Double patty, melting cheese, our secret signature sauce. Built for cravings.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-burger"></span>
+              <button class="addBtn btn" id="addBtn-burger" onclick="addToCart('Drop Burger', 100, 'burger', event)">+ ADD</button>
+            </div>
+          </div>
         </div>
 
-        <!-- Category Tabs -->
-        <div class="categoryTabs">
-          <button class="catTab active" onclick="filterCategory('all')">🍽 All</button>
-          <button class="catTab" onclick="filterCategory('main')">🍔 Main Course</button>
-          <button class="catTab" onclick="filterCategory('drinks')">🥤 Drinks</button>
-          <button class="catTab" onclick="filterCategory('snacks')">🍿 Snacks</button>
-          <button class="catTab" onclick="filterCategory('desserts')">🍰 Desserts</button>
+        <div class="card" data-category="main" data-item="pizza">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80" alt="Loaded Pizza"></div>
+          <div class="cardPrice">₹120</div>
+          <div class="cardBody">
+            <div>
+              <h4>Loaded Pizza</h4>
+              <p class="cardDesc">Wood-fired perfection dripping with heavy toppings and mozzarella.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-pizza"></span>
+              <button class="addBtn btn" id="addBtn-pizza" onclick="addToCart('Loaded Pizza', 120, 'pizza', event)">+ ADD</button>
+            </div>
+          </div>
         </div>
 
-        <div class="menuGrid" id="menuGrid">
-
-          <!-- Main Course -->
-          <div class="card" data-category="main">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80" alt="Burger">
-              <span class="cardBadge">Popular</span>
+        <div class="card" data-category="main" data-item="sandwich">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&q=80" alt="Grill Sandwich"></div>
+          <div class="cardPrice">₹50</div>
+          <div class="cardBody">
+            <div>
+              <h4>Grill Sandwich</h4>
+              <p class="cardDesc">Crispy golden edges, loaded to the brim with veggies and cheese.</p>
             </div>
-            <div class="cardBody">
-              <h4>Burger</h4>
-              <p class="cardDesc">Crispy patty, fresh veggies</p>
-              <div class="cardFooter">
-                <span class="price">₹100</span>
-                <button onclick="addToCart('Burger', 100)">+ Add</button>
-              </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-sandwich"></span>
+              <button class="addBtn btn" id="addBtn-sandwich" onclick="addToCart('Grill Sandwich', 50, 'sandwich', event)">+ ADD</button>
             </div>
           </div>
-
-          <div class="card" data-category="main">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1594007654729-407eedc4be65?w=400&q=80" alt="Pizza">
-            </div>
-            <div class="cardBody">
-              <h4>Pizza</h4>
-              <p class="cardDesc">Wood-fired, loaded toppings</p>
-              <div class="cardFooter">
-                <span class="price">₹120</span>
-                <button onclick="addToCart('Pizza', 120)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" data-category="main">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&q=80" alt="Sandwich">
-            </div>
-            <div class="cardBody">
-              <h4>Sandwich</h4>
-              <p class="cardDesc">Toasted, loaded fillings</p>
-              <div class="cardFooter">
-                <span class="price">₹50</span>
-                <button onclick="addToCart('Sandwich', 50)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" data-category="main">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80" alt="Fried Rice">
-            </div>
-            <div class="cardBody">
-              <h4>Fried Rice</h4>
-              <p class="cardDesc">Wok-tossed, egg & veggies</p>
-              <div class="cardFooter">
-                <span class="price">₹80</span>
-                <button onclick="addToCart('Fried Rice', 80)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Drinks -->
-          <div class="card" data-category="drinks">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&q=80" alt="Juice">
-              <span class="cardBadge">Fresh</span>
-            </div>
-            <div class="cardBody">
-              <h4>Juice</h4>
-              <p class="cardDesc">Cold pressed, fresh fruit</p>
-              <div class="cardFooter">
-                <span class="price">₹40</span>
-                <button onclick="addToCart('Juice', 40)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" data-category="drinks">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80" alt="Milkshake">
-            </div>
-            <div class="cardBody">
-              <h4>Milkshake</h4>
-              <p class="cardDesc">Thick, creamy & chilled</p>
-              <div class="cardFooter">
-                <span class="price">₹60</span>
-                <button onclick="addToCart('Milkshake', 60)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" data-category="drinks">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80" alt="Coffee">
-            </div>
-            <div class="cardBody">
-              <h4>Coffee</h4>
-              <p class="cardDesc">Hot brewed, rich aroma</p>
-              <div class="cardFooter">
-                <span class="price">₹30</span>
-                <button onclick="addToCart('Coffee', 30)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Snacks -->
-          <div class="card" data-category="snacks">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&q=80" alt="French Fries">
-              <span class="cardBadge">Popular</span>
-            </div>
-            <div class="cardBody">
-              <h4>French Fries</h4>
-              <p class="cardDesc">Crispy golden, salted</p>
-              <div class="cardFooter">
-                <span class="price">₹50</span>
-                <button onclick="addToCart('French Fries', 50)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" data-category="snacks">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80" alt="Samosa">
-            </div>
-            <div class="cardBody">
-              <h4>Samosa</h4>
-              <p class="cardDesc">Crispy, spiced potato filling</p>
-              <div class="cardFooter">
-                <span class="price">₹20</span>
-                <button onclick="addToCart('Samosa', 20)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" data-category="snacks">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=400&q=80" alt="Spring Rolls">
-            </div>
-            <div class="cardBody">
-              <h4>Spring Rolls</h4>
-              <p class="cardDesc">Crunchy veggie rolls</p>
-              <div class="cardFooter">
-                <span class="price">₹40</span>
-                <button onclick="addToCart('Spring Rolls', 40)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Desserts -->
-          <div class="card" data-category="desserts">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80" alt="Ice Cream">
-              <span class="cardBadge">New</span>
-            </div>
-            <div class="cardBody">
-              <h4>Ice Cream</h4>
-              <p class="cardDesc">Soft serve, 3 flavours</p>
-              <div class="cardFooter">
-                <span class="price">₹50</span>
-                <button onclick="addToCart('Ice Cream', 50)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" data-category="desserts">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&q=80" alt="Cake">
-            </div>
-            <div class="cardBody">
-              <h4>Cake Slice</h4>
-              <p class="cardDesc">Moist chocolate sponge</p>
-              <div class="cardFooter">
-                <span class="price">₹60</span>
-                <button onclick="addToCart('Cake Slice', 60)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" data-category="desserts">
-            <div class="cardImgWrap">
-              <img src="https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80" alt="Gulab Jamun">
-            </div>
-            <div class="cardBody">
-              <h4>Gulab Jamun</h4>
-              <p class="cardDesc">Soft, syrup-soaked sweets</p>
-              <div class="cardFooter">
-                <span class="price">₹30</span>
-                <button onclick="addToCart('Gulab Jamun', 30)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        <!-- Live Orders section -->
-        <div class="liveOrdersSection">
-          <h3 class="sectionTitle" style="margin-top:40px; font-size:1rem;">Your Orders 📋</h3>
-          <p style="font-size:0.72rem; color:var(--textDim); margin-top:6px; margin-bottom:4px;">
-            ⏱ You can cancel within 1 minute of placing if the order is still Preparing.
-          </p>
-          <ul id="ordersList" class="liveOrdersList"></ul>
+        <div class="card" data-category="main" data-item="fried-rice">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800&q=80" alt="Wok Fried Rice"></div>
+          <div class="cardPrice">₹80</div>
+          <div class="cardBody">
+            <div>
+              <h4>Wok Fried Rice</h4>
+              <p class="cardDesc">Smokey, wok-tossed goodness packed with fresh greens.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-fried-rice"></span>
+              <button class="addBtn btn" id="addBtn-fried-rice" onclick="addToCart('Wok Fried Rice', 80, 'fried-rice', event)">+ ADD</button>
+            </div>
+          </div>
         </div>
-      </section>
 
-      <!-- Cart Sidebar -->
-      <aside class="cartSidebar">
-        <h2 class="sidebarTitle">Cart 🛒</h2>
-        <ul id="cartList" class="cartList"></ul>
-        <div id="emptyCartMsg" class="emptyCartMsg">No items yet. Add from the menu!</div>
+        <div class="card" data-category="main" data-item="noodles">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&q=80" alt="Spicy Noodles"></div>
+          <div class="cardBadge">🌶 Spicy</div>
+          <div class="cardPrice">₹70</div>
+          <div class="cardBody">
+            <div>
+              <h4>Spicy Noodles</h4>
+              <p class="cardDesc">A bowl of absolute fire. Tossed with chili oil and garlic.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-noodles"></span>
+              <button class="addBtn btn" id="addBtn-noodles" onclick="addToCart('Spicy Noodles', 70, 'noodles', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
 
+        <div class="card featured" data-category="main" data-item="butter-chicken">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=800&q=80" alt="Butter Chicken"></div>
+          <div class="cardPrice">₹150</div>
+          <div class="cardBody">
+            <div>
+              <h4>Butter Chicken Bowl</h4>
+              <p class="cardDesc">Creamy, rich, and paired with butter garlic naan. A complete meal.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-butter-chicken"></span>
+              <button class="addBtn btn" id="addBtn-butter-chicken" onclick="addToCart('Butter Chicken Bowl', 150, 'butter-chicken', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Snacks -->
+        <div class="card featured" data-category="snacks" data-item="french-fries">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1576777647209-e8733d7b851d?w=800&q=80" alt="Neon Fries"></div>
+          <div class="cardBadge">🍟 Crowd Fav</div>
+          <div class="cardPrice">₹50</div>
+          <div class="cardBody">
+            <div>
+              <h4>Neon Fries</h4>
+              <p class="cardDesc">Extra crispy, perfectly salted, and always served piping hot.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-french-fries"></span>
+              <button class="addBtn btn" id="addBtn-french-fries" onclick="addToCart('Neon Fries', 50, 'french-fries', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="snacks" data-item="samosa">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=800&q=80" alt="Classic Samosa"></div>
+          <div class="cardPrice">₹20</div>
+          <div class="cardBody">
+            <div>
+              <h4>Classic Samosa</h4>
+              <p class="cardDesc">Spiced potato and peas wrapped in a crispy, flaky shell.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-samosa"></span>
+              <button class="addBtn btn" id="addBtn-samosa" onclick="addToCart('Classic Samosa', 20, 'samosa', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="snacks" data-item="tacos">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&q=80" alt="Crispy Tacos"></div>
+          <div class="cardPrice">₹60</div>
+          <div class="cardBody">
+            <div>
+              <h4>Crispy Tacos</h4>
+              <p class="cardDesc">Stuffed with beans, salsa, and cheese. A crunchy delight.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-tacos"></span>
+              <button class="addBtn btn" id="addBtn-tacos" onclick="addToCart('Crispy Tacos', 60, 'tacos', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="snacks" data-item="nachos">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?w=800&q=80" alt="Nachos Grande"></div>
+          <div class="cardPrice">₹90</div>
+          <div class="cardBody">
+            <div>
+              <h4>Nachos Grande</h4>
+              <p class="cardDesc">Loaded with jalapenos, melted cheese, and fresh sour cream.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-nachos"></span>
+              <button class="addBtn btn" id="addBtn-nachos" onclick="addToCart('Nachos Grande', 90, 'nachos', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="snacks" data-item="nuggets">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1562967914-608f82629710?w=800&q=80" alt="Chicken Nuggets"></div>
+          <div class="cardPrice">₹80</div>
+          <div class="cardBody">
+            <div>
+              <h4>Chicken Nuggets</h4>
+              <p class="cardDesc">Golden fried chicken bites served with a sweet chili dip.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-nuggets"></span>
+              <button class="addBtn btn" id="addBtn-nuggets" onclick="addToCart('Chicken Nuggets', 80, 'nuggets', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drinks -->
+        <div class="card" data-category="drinks" data-item="milkshake">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=800&q=80" alt="Thick Shake"></div>
+          <div class="cardPrice">₹60</div>
+          <div class="cardBody">
+            <div>
+              <h4>Thick Shake</h4>
+              <p class="cardDesc">Ice cold, rich chocolate shake topped with whipped cream.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-milkshake"></span>
+              <button class="addBtn btn" id="addBtn-milkshake" onclick="addToCart('Thick Shake', 60, 'milkshake', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" data-category="drinks" data-item="coffee">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&q=80" alt="Black Coffee"></div>
+          <div class="cardPrice">₹30</div>
+          <div class="cardBody">
+            <div>
+              <h4>Black Coffee</h4>
+              <p class="cardDesc">A strong, freshly brewed cup to wake you right up.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-coffee"></span>
+              <button class="addBtn btn" id="addBtn-coffee" onclick="addToCart('Black Coffee', 30, 'coffee', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="drinks" data-item="cold-coffee">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1461023058943-07cb14ea815a?w=800&q=80" alt="Cold Coffee"></div>
+          <div class="cardPrice">₹50</div>
+          <div class="cardBody">
+            <div>
+              <h4>Cold Coffee</h4>
+              <p class="cardDesc">Chilled espresso over ice with creamy milk.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-cold-coffee"></span>
+              <button class="addBtn btn" id="addBtn-cold-coffee" onclick="addToCart('Cold Coffee', 50, 'cold-coffee', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="drinks" data-item="iced-tea">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&q=80" alt="Lemon Iced Tea"></div>
+          <div class="cardPrice">₹40</div>
+          <div class="cardBody">
+            <div>
+              <h4>Lemon Iced Tea</h4>
+              <p class="cardDesc">Refreshing, sweet, and tangy with a squeeze of fresh lemon.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-iced-tea"></span>
+              <button class="addBtn btn" id="addBtn-iced-tea" onclick="addToCart('Lemon Iced Tea', 40, 'iced-tea', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="drinks" data-item="lime-soda">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=800&q=80" alt="Fresh Lime Soda"></div>
+          <div class="cardPrice">₹30</div>
+          <div class="cardBody">
+            <div>
+              <h4>Fresh Lime Soda</h4>
+              <p class="cardDesc">The ultimate thirst quencher with a fizz.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-lime-soda"></span>
+              <button class="addBtn btn" id="addBtn-lime-soda" onclick="addToCart('Fresh Lime Soda', 30, 'lime-soda', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desserts -->
+        <div class="card featured" data-category="desserts" data-item="lava-cake">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=800&q=80" alt="Choco Lava Cake"></div>
+          <div class="cardPrice">₹70</div>
+          <div class="cardBody">
+            <div>
+              <h4>Choco Lava Cake</h4>
+              <p class="cardDesc">Warm, gooey chocolate center that oozes with every bite.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-lava-cake"></span>
+              <button class="addBtn btn" id="addBtn-lava-cake" onclick="addToCart('Choco Lava Cake', 70, 'lava-cake', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="desserts" data-item="brownie">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=80" alt="Sizzling Brownie"></div>
+          <div class="cardPrice">₹90</div>
+          <div class="cardBody">
+            <div>
+              <h4>Sizzling Brownie</h4>
+              <p class="cardDesc">Hot fudge brownie topped with a scoop of vanilla ice cream.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-brownie"></span>
+              <button class="addBtn btn" id="addBtn-brownie" onclick="addToCart('Sizzling Brownie', 90, 'brownie', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-category="desserts" data-item="waffles">
+          <div class="cardImgWrap"><img src="https://images.unsplash.com/photo-1562376552-0d160a2f9fa4?w=800&q=80" alt="Classic Waffles"></div>
+          <div class="cardPrice">₹100</div>
+          <div class="cardBody">
+            <div>
+              <h4>Classic Waffles</h4>
+              <p class="cardDesc">Crispy waffles drenched in maple syrup and fresh berries.</p>
+            </div>
+            <div class="cardFooter">
+              <span class="stockBadgeWrap" id="stock-waffles"></span>
+              <button class="addBtn btn" id="addBtn-waffles" onclick="addToCart('Classic Waffles', 100, 'waffles', event)">+ ADD</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Live Orders Section -->
+    <section class="liveOrdersSection">
+      <h2 class="section-title">THE SIGNAL</h2>
+      <ul id="ordersList" class="ordersList"></ul>
+    </section>
+
+    <!-- Cart Drawer -->
+    <div class="cartOverlay" id="cartOverlay" onclick="toggleMobileCart()"></div>
+    <aside class="cartSidebar" id="cartSidebar">
+      <h2 class="sidebarTitle">YOUR BAG 🛍</h2>
+      
+      <ul id="cartList" class="cartList"></ul>
+      
+      <div id="emptyCartMsg" class="emptyState">
+        <div class="emptyState-icon">🎒</div>
+        <p>Your bag is looking a little empty.</p>
+      </div>
+
+      <div class="cartFooter">
         <div class="cartTotal">
           <span>Total</span>
           <span id="totalPrice">₹0</span>
         </div>
 
-        <div class="sidebarDivider"></div>
-
-        <label class="sidebarLabel">Payment Method</label>
         <select id="paymentMethod" onchange="handlePaymentChange()">
-          <option value="">Select Payment</option>
+          <option value="">Select</option>
           <option value="UPI">UPI</option>
           <option value="Cash">Cash</option>
         </select>
 
-        <!-- UPI Panel -->
-        <div id="upiSection" style="display:none;" class="upiBox">
-          <p class="upiLabel" id="upiLabel">Scan &amp; Pay</p>
-          <img id="upiQR" src="" alt="UPI QR" class="upiQR" style="display:none;">
-          <p class="upiId">UPI ID: <b id="upiIdText"></b></p>
-          <p class="upiAmount">Amount: <b>₹<span id="upiAmount">0</span></b></p>
-          <p class="upiNote" id="upiNote"></p>
-          <a id="upiPayBtn" href="#" class="upiPayLink" style="display:none;" target="_blank">📱 Open UPI App →</a>
-          <button id="upiConfirmBtn" onclick="confirmUpiPayment()" style="
-            width:100%; margin-top:12px; padding:11px;
-            background:transparent; border:2px solid #22c55e;
-            color:#22c55e; border-radius:8px;
-            font-family:'JetBrains Mono',monospace;
-            font-weight:700; font-size:0.85rem;
-            cursor:pointer; transition:all 0.2s;
-          ">✔ I Have Paid</button>
+        <p class="payLabel">How would you like to pay?</p>
+        <div class="payment-toggle">
+          <button class="pay-btn btn" id="payBtnUPI" onclick="selectPayment('UPI')">&#128241; UPI</button>
+          <button class="pay-btn btn" id="payBtnCash" onclick="selectPayment('Cash')">&#128181; Cash</button>
         </div>
 
-        <button id="checkoutBtn" onclick="checkout()">Checkout →</button>
-      </aside>
+        <div id="upiSection" class="upiBox" style="display:none;">
+          <p class="upiLabel" id="upiLabel">Scan & Pay</p>
+          <img id="upiQR" src="" alt="UPI QR" class="upiQR" style="display:none;">
+          <p>UPI ID: <b id="upiIdText"></b></p>
+          <p>Amount: <b style="color:var(--mango)">₹<span id="upiAmount">0</span></b></p>
+          <p id="upiNote" style="font-size:0.8rem; opacity:0.8; margin-top:10px;"></p>
+          <a id="upiPayBtn" href="#" class="btn" style="display:none; width:100%; padding:12px; background:var(--fire); color:#fff; border-radius:50px; text-decoration:none; margin-top:10px;">📱 Open UPI App</a>
+          <button id="upiConfirmBtn" onclick="confirmUpiPayment()" class="btn upiConfirmBtn">&#10004; I Have Paid</button>
+        </div>
 
-    </div><!-- /.appGrid -->
-  </div><!-- /#mainApp -->
+        <button id="checkoutBtn" onclick="checkout()" class="checkoutBtn btn">PLACE ORDER &#128293;</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Receipt Drop (Full Screen Takeover) -->
+  <div class="receipt-drop" id="receiptDrop">
+    <div class="receipt-card">
+      <div class="receipt-sub">You're in the queue. We've got you.</div>
+      <div class="receipt-token" id="receiptTokenDisplay">#00</div>
+      <button class="receipt-btn btn" onclick="closeReceipt()">View Live Tracker</button>
+    </div>
+  </div>
+
+  <button class="mobileCartFab btn" id="mobileCartFab" onclick="toggleMobileCart()">
+    🛍
+    <span class="fabBadge" id="fabBadge">0</span>
+  </button>
 
   <div id="toast"></div>
 
   <script type="module" src="script.js"></script>
   <script>
+    // Tab switching in Auth Gate
     window.switchTab = function (tab) {
-      document.getElementById('loginForm').style.display  = tab === 'login'  ? 'block' : 'none';
+      document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
       document.getElementById('signupForm').style.display = tab === 'signup' ? 'block' : 'none';
-      document.getElementById('tabLogin').classList.toggle('active',  tab === 'login');
+      document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
       document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
       const err = document.getElementById('authError');
-      err.innerText = ''; err.style.display = 'none'; err.style.color = '';
+      err.innerText = ''; err.style.display = 'none';
     };
 
+    // Category Filter
     window.filterCategory = function (cat) {
       document.querySelectorAll('.catTab').forEach(btn => btn.classList.remove('active'));
       event.target.classList.add('active');
       document.querySelectorAll('#menuGrid .card').forEach(card => {
-        card.style.display = (cat === 'all' || card.dataset.category === cat) ? 'block' : 'none';
+        const show = cat === 'all' || card.dataset.category === cat;
+        card.style.display = show ? 'flex' : 'none';
       });
     };
+
+    // Cart Drawer Toggle
+    window.toggleMobileCart = function () {
+      const sidebar = document.getElementById('cartSidebar');
+      const overlay = document.getElementById('cartOverlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+    };
+
+    // Custom Payment Toggle UI
+    window.selectPayment = function(method) {
+      document.getElementById('paymentMethod').value = method;
+      document.getElementById('payBtnUPI').classList.toggle('active', method === 'UPI');
+      document.getElementById('payBtnCash').classList.toggle('active', method === 'Cash');
+      // Trigger the existing handler in script.js
+      window.handlePaymentChange();
+    };
+
+    // Receipt Drop Logic
+    window.showReceipt = function(tokenStr) {
+      const drop = document.getElementById('receiptDrop');
+      document.getElementById('receiptTokenDisplay').innerText = "#" + tokenStr;
+      drop.classList.add('active');
+      
+      // Fire confetti!
+      var duration = 3000;
+      var end = Date.now() + duration;
+
+      (function frame() {
+        confetti({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#FF4500', '#FFBE00', '#A8FF3E']
+        });
+        confetti({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#C850C0', '#4158D0', '#00F5FF']
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
+    };
+
+    window.closeReceipt = function() {
+      document.getElementById('receiptDrop').classList.remove('active');
+      document.getElementById('cartSidebar').classList.remove('open');
+      document.getElementById('cartOverlay').classList.remove('active');
+      // Scroll to tracker
+      document.querySelector('.liveOrdersSection').scrollIntoView({behavior: 'smooth'});
+    };
+
+    // Phone mockup 3D tilt
+    document.addEventListener('mousemove', (e) => {
+      const phone = document.querySelector('.phone-mockup');
+      if(phone && window.innerWidth > 1024) {
+        const xAxis = (window.innerWidth / 2 - e.pageX) / 40;
+        const yAxis = (window.innerHeight / 2 - e.pageY) / 40;
+        phone.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+      }
+
+      // Make background blobs interactive
+      const blobs = document.querySelectorAll('.blob');
+      const mouseX = e.clientX / window.innerWidth;
+      const mouseY = e.clientY / window.innerHeight;
+      
+      blobs.forEach((blob, index) => {
+        const speed = (index + 1) * 20;
+        const x = (mouseX - 0.5) * speed;
+        const y = (mouseY - 0.5) * speed;
+        blob.style.transform = `translate(${x}px, ${y}px)`;
+      });
+    });
+
   </script>
 </body>
 </html>

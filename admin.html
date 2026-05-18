@@ -3,83 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Smart Canteen – Admin</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    #adminLoginScreen {
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; position: relative; z-index: 10;
-    }
-    .adminLoginCard {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 14px; padding: 44px 40px; width: 100%;
-      max-width: 380px; text-align: center;
-    }
-    .adminLoginCard h2 {
-      font-family: var(--display); font-size: 1.4rem;
-      color: var(--accent); letter-spacing: 2px; margin-bottom: 6px;
-    }
-    .adminLoginCard > p {
-      font-size: 0.75rem; color: var(--textDim);
-      margin-bottom: 28px; letter-spacing: 0.5px;
-    }
-    .adminGoogleBtn {
-      width: 100%; padding: 12px; background: #fff; color: #1f1f1f;
-      border: 1px solid #dadce0; border-radius: 8px;
-      font-family: 'JetBrains Mono', monospace; font-weight: 600;
-      font-size: 0.88rem; cursor: pointer; display: flex;
-      align-items: center; justify-content: center; gap: 10px;
-      transition: box-shadow 0.15s; margin-bottom: 14px;
-    }
-    .adminGoogleBtn:hover    { box-shadow: 0 1px 6px rgba(0,0,0,0.2); }
-    .adminGoogleBtn:disabled { opacity: 0.6; cursor: not-allowed; }
-    #adminLoginError { color: var(--red); font-size: 0.75rem; min-height: 18px; margin-top: 10px; }
-    #adminLogoutBtn {
-      font-family: var(--mono); font-size: 0.7rem; padding: 6px 14px;
-      border: 1px solid var(--red); background: transparent; color: var(--red);
-      border-radius: 5px; cursor: pointer; transition: all 0.15s;
-    }
-    #adminLogoutBtn:hover { background: var(--red); color: #fff; }
-
-    /* Payment badge */
-    .payBadge {
-      display: inline-block; font-size: 0.7rem; padding: 2px 8px;
-      border-radius: 20px; font-weight: 600; vertical-align: middle;
-    }
-
-    /* Confirm & Prepare button — amber, prominent */
-    .btnConfirmPay {
-      background: #ffab00 !important;
-      color: #000 !important;
-      font-weight: 700;
-      font-size: 0.72rem !important;
-      padding: 10px 14px !important;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-      animation: pulse 1.8s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255,171,0,0.4); }
-      50%       { box-shadow: 0 0 0 6px rgba(255,171,0,0); }
-    }
-
-    .orderTime { font-size: 0.72rem; opacity: 0.5; }
-    .statBox.accent { border-color: rgba(167,139,250,0.27); }
-  </style>
+  <title>SmartBite — Admin Panel</title>
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
 
-  <!-- ADMIN LOGIN -->
+  <!-- ══ ADMIN LOGIN ══ -->
   <div id="adminLoginScreen">
     <div class="adminLoginCard">
-      <h2>🍽 Admin Panel</h2>
-      <p>Sign in with your authorised Google account to continue.</p>
-      <button class="adminGoogleBtn" id="adminGoogleBtn">
-        <svg width="18" height="18" viewBox="0 0 48 48">
+      <h1 class="adminLoginTitle">SmartBite Admin</h1>
+      <p style="color:#aaa; margin-bottom: 30px; font-size:0.9rem;">Restricted access — authorised personnel only</p>
+      <button id="adminGoogleBtn">
+        <svg width="20" height="20" viewBox="0 0 48 48">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
           <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
@@ -91,17 +26,17 @@
     </div>
   </div>
 
-  <!-- ADMIN DASHBOARD -->
+  <!-- ══ ADMIN DASHBOARD ══ -->
   <div id="adminDashboard" style="display:none;">
 
-    <header>
-      <div class="headerLeft">
-        <div class="dot"></div>
-        <h1>ADMIN PANEL</h1>
+    <header class="adminHeader">
+      <div class="adminHeaderLeft">
+        <div class="adminHeaderDot"></div>
+        <span class="adminHeaderTitle">SMARTBITE — ADMIN</span>
       </div>
-      <div class="headerRight" style="display:flex; align-items:center; gap:16px;">
-        <span id="adminUserEmail" style="font-size:0.7rem; color:var(--textDim);"></span>
-        <span id="liveClock" style="opacity:0.6; font-size:0.8rem;"></span>
+      <div class="adminHeaderRight">
+        <span id="liveClock"></span>
+        <span id="adminUserEmail" style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
         <button id="adminLogoutBtn">Logout</button>
       </div>
     </header>
@@ -112,53 +47,50 @@
         <p id="totalOrders">0</p>
       </div>
       <div class="statBox">
-        <h3>Delivered Revenue</h3>
+        <h3>Revenue Today</h3>
         <p id="totalRevenue">₹0</p>
       </div>
-      <div class="statBox accent">
+      <div class="statBox">
         <h3>UPI Pending</h3>
         <p id="pendingRevenue">₹0</p>
+      </div>
+      <div class="statBox">
+        <h3>Queue Status</h3>
+        <p style="color:#A8FF3E;">LIVE</p>
       </div>
     </div>
 
     <div class="filters">
       <button id="btnAll" class="active">All Active</button>
-      <button id="btnPendingPayment">⚠ Pending Payment</button>
+      <button id="btnPendingPayment">Pending Payment</button>
       <button id="btnPreparing">Preparing</button>
       <button id="btnReady">Ready</button>
       <button id="btnDelivered">Delivered</button>
-      <button id="btnToday">Today Only</button>
       <button id="btnCancelled">Cancelled</button>
+      <button id="btnToday">Today</button>
+      <button id="btnInventory" style="margin-left:auto; border-color:#FFBE00; color:#FFBE00;">📦 Stock Manager</button>
     </div>
 
     <div id="panelLayout">
       <div id="ordersPanel">
-        <div class="panelTitle"><span></span> Active Orders</div>
+        <div class="panelTitle"><span></span> Order Queue</div>
         <div id="adminOrders"></div>
       </div>
       <div id="historyPanel">
-        <div class="panelTitle">
-          <span style="background:var(--green);"></span> Delivered History
-        </div>
+        <div class="panelTitle"><span style="background:#A8FF3E;"></span> Delivered Operations</div>
         <div id="historyOrders"></div>
       </div>
+    </div>
+
+    <div id="inventoryPanel">
+      <div class="panelTitle"><span style="background:#C850C0;"></span> Stock Manager</div>
+      <div class="inventoryGrid" id="inventoryGrid"></div>
     </div>
 
   </div>
 
   <div id="toast"></div>
   <script type="module" src="admin.js"></script>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      document.querySelectorAll(".filters button").forEach(btn => {
-        btn.addEventListener("click", () => {
-          document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-        });
-      });
-    });
-  </script>
 
 </body>
 </html>

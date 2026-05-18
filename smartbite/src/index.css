@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; }
+
+img { max-width: 100%; height: auto; }
+
+input, button, select, textarea { font-size: 16px; } /* prevents iOS zoom on focus */
+
+:root {
+  --grad1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --grad2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --grad3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --grad4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  --grad5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  --orange: #ff6b35;
+  --purple: #764ba2;
+  --pink: #f5576c;
+  --cyan: #00f2fe;
+  --green: #43e97b;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #0f0c29;
+  color: #fff;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a2e; }
+::-webkit-scrollbar-thumb { background: #667eea; border-radius: 3px; }
+
+.glass {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+}
+
+.btn-primary {
+  background: var(--grad1);
+  color: #fff;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 50px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(102,126,234,0.4);
+}
+
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(102,126,234,0.6); }
+
+.btn-secondary {
+  background: transparent;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.4);
+  padding: 12px 28px;
+  border-radius: 50px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: #fff; }

@@ -1,7 +1,7 @@
 import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore, collection, addDoc, onSnapshot,
-  query, where, doc, updateDoc, runTransaction
+  query, where, doc, updateDoc, runTransaction, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
   getAuth,
@@ -17,6 +17,11 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getMessaging,
+  getToken,
+  onMessage
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
 // ─── Firebase Config ───────────────────────────────────────────────
 const firebaseConfig = {
@@ -29,19 +34,81 @@ const firebaseConfig = {
   measurementId:     "G-35J29T7499"
 };
 
+// ─── VAPID Key — Get from Firebase Console ─────────────────────────
+// Go to: Firebase Console → Project Settings → Cloud Messaging
+// → Web Push Certificates → Generate Key Pair → copy the key below
+const VAPID_KEY = "YOUR_VAPID_KEY_HERE";
+
 const UPI_ID   = "b1869452@oksbi";
 const UPI_NAME = "Bhavan+Raj";
 
-const app      = initializeApp(firebaseConfig);
-const db       = getFirestore(app);
-const auth     = getAuth(app);
-const provider = new GoogleAuthProvider();
+const app       = initializeApp(firebaseConfig);
+const db        = getFirestore(app);
+const auth      = getAuth(app);
+const provider  = new GoogleAuthProvider();
+const messaging = getMessaging(app);
 
 // ─── State ─────────────────────────────────────────────────────────
 let cart                  = [];
 let ordersListenerStarted = false;
 let ordersUnsubscribe     = null;
 let upiPaymentConfirmed   = false;
+
+// ══════════════════════════════════════════════════════════════════
+//  PUSH NOTIFICATION SETUP
+// ══════════════════════════════════════════════════════════════════
+
+// Register service worker and get FCM token
+async function setupPushNotifications(user) {
+  if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
+
+  try {
+    // Register the service worker
+    const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+    console.log("[FCM] Service Worker registered:", registration.scope);
+
+    // Ask user for notification permission
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      console.log("[FCM] Notification permission denied.");
+      return;
+    }
+
+    // Get FCM token (only if VAPID key is set)
+    if (VAPID_KEY === "YOUR_VAPID_KEY_HERE") {
+      console.warn("[FCM] VAPID key not set. Skipping FCM token fetch. See Firebase Console → Project Settings → Cloud Messaging.");
+      return;
+    }
+
+    const fcmToken = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration
+    });
+
+    if (fcmToken) {
+      console.log("[FCM] Token obtained:", fcmToken);
+      // Save token to Firestore so admin can send targeted notifications
+      await setDoc(doc(db, "fcmTokens", user.uid), {
+        token:     fcmToken,
+        uid:       user.uid,
+        email:     user.email,
+        updatedAt: new Date()
+      }, { merge: true });
+      console.log("[FCM] Token saved to Firestore.");
+    }
+
+    // Handle foreground messages (when app IS open)
+    onMessage(messaging, (payload) => {
+      console.log("[FCM] Foreground message:", payload);
+      const title = payload.notification?.title || "SmartBite 🍔";
+      const body  = payload.notification?.body  || "Order update!";
+      showToast(`${title} — ${body}`, 6000);
+    });
+
+  } catch (err) {
+    console.error("[FCM] Push setup error:", err.message);
+  }
+}
 
 // Track previous order statuses to detect changes for notifications
 // Map of orderId → last known status
@@ -235,7 +302,15 @@ function initApp(user) {
   const emailEl = document.getElementById("navUserEmail");
   if (nameEl)  nameEl.innerText  = user.displayName || "Customer";
   if (emailEl) emailEl.innerText = user.email || "";
+
+  // Ask for standard notification permission (old method fallback)
   requestNotificationPermission();
+
+  // Ask for Web Push / FCM notifications
+  setupPushNotifications(user);
+
+  updateCartUI();
+  startMenuListener();
   startOrdersListener(user);
 }
 
@@ -294,7 +369,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(user, { displayName: name });
       await sendEmailVerification(user);
-      showToast("✅ Account created! Check your email to verify.", 7000);
+      await signOut(auth); // Force manual login — no auto-entry after signup
+      showToast("✅ Account created! Please log in to continue.", 7000);
       window.switchTab("login");
     } catch (err) {
       showAuthError(friendlyError(err.code));
@@ -333,13 +409,46 @@ window.logout = async function () {
 //  CART
 // ══════════════════════════════════════════════════════════════════
 
-window.addToCart = function (name, price) {
+// ── Menu stock map (populated by startMenuListener) ────────────────
+const menuStock = {};
+
+function createRipple(btn, e) {
+  try {
+    const rect   = btn.getBoundingClientRect();
+    const ripple = document.createElement("span");
+    ripple.className = "rippleEffect";
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.cssText = `width:${size}px;height:${size}px;left:${(e.clientX - rect.left) - size/2}px;top:${(e.clientY - rect.top) - size/2}px;`;
+    btn.appendChild(ripple);
+    ripple.addEventListener("animationend", () => ripple.remove());
+  } catch (_) {}
+}
+
+window.addToCart = function (name, price, slug, event) {
+  // Stock check
+  if (slug && menuStock[slug] !== undefined) {
+    const inCart = cart.find(i => i.name === name)?.qty || 0;
+    if (menuStock[slug] - inCart <= 0) {
+      showToast("⚠ " + name + " is out of stock!");
+      return;
+    }
+  }
   const item = cart.find(i => i.name === name);
   if (item) item.qty++;
-  else       cart.push({ name, price, qty: 1 });
+  else       cart.push({ name, price, qty: 1, slug });
   updateCartUI();
   handlePaymentChange();
   showToast("🛒 " + name + " added!");
+  // Ripple + button feedback
+  const btn = slug ? document.getElementById("addBtn-" + slug) : null;
+  if (btn) {
+    if (event) createRipple(btn, event);
+    btn.classList.add("added");
+    setTimeout(() => btn.classList.remove("added"), 700);
+  }
+  // FAB pulse
+  const fab = document.getElementById("mobileCartFab");
+  if (fab) { fab.classList.remove("pulse"); void fab.offsetWidth; fab.classList.add("pulse"); setTimeout(() => fab.classList.remove("pulse"), 700); }
 };
 
 window.changeQty = function (index, change) {
@@ -371,7 +480,46 @@ function updateCartUI() {
   });
   totalEl.innerText      = "₹" + total;
   emptyMsg.style.display = cart.length === 0 ? "block" : "none";
+  // Update nav badge + FAB badge
+  const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+  const navBadge = document.getElementById("navCartBadge");
+  const fabBadge = document.getElementById("fabBadge");
+  if (navBadge) navBadge.innerText = totalQty > 0 ? totalQty : "";
+  if (fabBadge) fabBadge.innerText = totalQty > 0 ? totalQty : "";
 }
+
+function updateStockUI() {
+  document.querySelectorAll(".card[data-item]").forEach(card => {
+    const slug   = card.dataset.item;
+    const qty    = menuStock[slug];
+    const badge  = document.getElementById("stock-" + slug);
+    const btn    = document.getElementById("addBtn-" + slug);
+    if (qty === undefined) { if (badge) badge.innerHTML = ""; if (btn) { btn.disabled = false; btn.textContent = "+ Add"; } card.classList.remove("outOfStock"); return; }
+    if (qty <= 0) {
+      if (badge) badge.innerHTML = '<span class="stockPill outOfStockPill">⛔ Out of Stock</span>';
+      if (btn)   { btn.disabled = true; btn.textContent = "Sold Out"; }
+      card.classList.add("outOfStock");
+    } else if (qty <= 5) {
+      if (badge) badge.innerHTML = `<span class="stockPill lowStockPill">⚠ Only ${qty} left</span>`;
+      if (btn)   { btn.disabled = false; btn.textContent = "+ Add"; }
+      card.classList.remove("outOfStock");
+    } else {
+      if (badge) badge.innerHTML = `<span class="stockPill inStockPill">✓ ${qty} available</span>`;
+      if (btn)   { btn.disabled = false; btn.textContent = "+ Add"; }
+      card.classList.remove("outOfStock");
+    }
+  });
+}
+
+function startMenuListener() {
+  onSnapshot(collection(db, "menu"), (snapshot) => {
+    snapshot.forEach(d => { menuStock[d.id] = d.data().qty ?? 0; });
+    updateStockUI();
+  }, (err) => {
+    console.warn("Menu listener failed (likely permission-denied):", err.message);
+  });
+}
+
 
 // ══════════════════════════════════════════════════════════════════
 //  UPI PAYMENT FLOW
@@ -499,9 +647,11 @@ window.checkout = async function () {
     });
 
     if (payment === "UPI") {
-      showToast("⏳ Order placed! Waiting for admin to confirm your UPI payment. Token #" + token, 7000);
+      if(window.showReceipt) window.showReceipt(token);
+      else showToast("⏳ Order placed! Waiting for admin to confirm your UPI payment. Token #" + token, 7000);
     } else {
-      showToast("✅ Order placed! Token #" + token, 5000);
+      if(window.showReceipt) window.showReceipt(token);
+      else showToast("✅ Order placed! Token #" + token, 5000);
     }
 
     // Reset
@@ -551,6 +701,89 @@ window.cancelOrder = async function (orderId, btnEl) {
 };
 
 // ══════════════════════════════════════════════════════════════════
+//  DYNAMIC PHONE MOCKUP UPDATE
+// ══════════════════════════════════════════════════════════════════
+
+function updatePhoneMockup(activeOrders) {
+  const pmLabel = document.getElementById("pmLabel");
+  const pmItems = document.getElementById("pmItems");
+  const pmTotal = document.getElementById("pmTotal");
+  const pmToken = document.getElementById("pmToken");
+  const pmEta   = document.getElementById("pmEta");
+
+  if (!pmLabel || !pmItems || !pmTotal || !pmToken || !pmEta) return;
+
+  if (activeOrders.length === 0) {
+    // Default welcome state
+    pmLabel.innerText = "READY TO DROP? 😋";
+    pmItems.innerText = "Add items to your bag and secure your token!";
+    pmTotal.innerText = "₹0";
+    pmToken.innerText = "#--";
+    pmEta.innerText   = "Quick pick-up from seat";
+
+    // Set all steps to default/inactive
+    const s1 = document.getElementById("pmStep1");
+    const s2 = document.getElementById("pmStep2");
+    const s3 = document.getElementById("pmStep3");
+    const s4 = document.getElementById("pmStep4");
+    if(s1) s1.className = "phone-step";
+    if(s2) s2.className = "phone-step";
+    if(s3) s3.className = "phone-step";
+    if(s4) s4.className = "phone-step";
+    return;
+  }
+
+  // Display the first (oldest/current) active order
+  const order = activeOrders[0];
+  pmLabel.innerText = "YOUR ACTIVE ORDER";
+  pmItems.innerText = order.items.map(i => `${i.qty}x ${i.name}`).join(" + ");
+  pmTotal.innerText = "₹" + order.total;
+  pmToken.innerText = "#" + order.token;
+
+  // Set steps dynamically
+  const step1 = document.getElementById("pmStep1");
+  const step2 = document.getElementById("pmStep2");
+  const step3 = document.getElementById("pmStep3");
+  const step4 = document.getElementById("pmStep4");
+
+  // Step 1: Payment
+  if (order.status === "Pending Payment") {
+    if(step1) step1.className = "phone-step active";
+    pmEta.innerText = "Waiting for payment verification...";
+  } else {
+    if(step1) step1.className = "phone-step done";
+  }
+
+  // Step 2: Preparing
+  if (order.status === "Preparing") {
+    if(step2) step2.className = "phone-step active";
+    pmEta.innerText = "Est. wait: ~5-10 mins";
+  } else if (order.status === "Ready" || order.status === "Delivered") {
+    if(step2) step2.className = "phone-step done";
+  } else {
+    if(step2) step2.className = "phone-step";
+  }
+
+  // Step 3: Ready
+  if (order.status === "Ready") {
+    if(step3) step3.className = "phone-step active";
+    pmEta.innerText = "Order is hot & ready to pick up! 🔔";
+  } else if (order.status === "Delivered") {
+    if(step3) step3.className = "phone-step done";
+  } else {
+    if(step3) step3.className = "phone-step";
+  }
+
+  // Step 4: Collected/Delivered
+  if (order.status === "Delivered") {
+    if(step4) step4.className = "phone-step done";
+    pmEta.innerText = "Delivered! Hope you enjoy it 😊";
+  } else {
+    if(step4) step4.className = "phone-step";
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  LIVE ORDERS LISTENER
 // ══════════════════════════════════════════════════════════════════
 
@@ -564,9 +797,11 @@ function startOrdersListener(user) {
   ordersUnsubscribe = onSnapshot(q, (snapshot) => {
     renderUserOrders(snapshot, user);
   }, (err) => {
-    console.warn("Falling back to client filter:", err.message);
+    console.warn("Query failed, falling back to client filter:", err.message);
     ordersUnsubscribe = onSnapshot(collection(db, "orders"), (snapshot) => {
       renderUserOrders(snapshot, user);
+    }, (fallbackErr) => {
+      console.error("Fallback failed too:", fallbackErr.message);
     });
   });
 
@@ -589,53 +824,112 @@ function startOrdersListener(user) {
     // ── Check for status changes → fire notifications ──────────────
     checkStatusChanges(userOrders);
 
+    // Split into active and past
+    const activeOrders = userOrders.filter(o => 
+      o.status === "Pending Payment" || o.status === "Preparing" || o.status === "Ready"
+    );
+    const pastOrders = userOrders.filter(o => 
+      o.status === "Delivered" || o.status === "Cancelled"
+    );
+
+    // Dynamic Live-Update for phone mockup on landing page!
+    updatePhoneMockup(activeOrders);
+
     ordersList.innerHTML = "";
-    if (userOrders.length === 0) {
-      ordersList.innerHTML = `<li class="noOrders">No orders placed yet.</li>`;
+
+    // ── Active orders ───────────────────────────────────────────────
+    if (activeOrders.length === 0 && pastOrders.length === 0) {
+      ordersList.innerHTML = `<li class="noOrders" style="text-align:center; color:rgba(255,255,255,0.4); padding:40px 20px; font-size:1rem;">No orders yet. Start ordering! 🍔</li>`;
       return;
     }
 
-    const sc = {
-      "Pending Payment": "statusPendingPayment",
-      "Preparing":       "statusPreparing",
-      "Ready":           "statusReady",
-      "Delivered":       "statusDelivered",
-      "Cancelled":       "statusCancelled",
-    };
+    if (activeOrders.length === 0 && pastOrders.length > 0) {
+      ordersList.innerHTML += `<li style="text-align:center; color:rgba(255,255,255,0.4); padding:20px 0; font-size:0.95rem;">No active orders right now.</li>`;
+    }
 
     const now = Date.now();
 
-    userOrders.forEach((data) => {
+    activeOrders.forEach((data) => {
       const li = document.createElement("li");
       li.className = "liveOrderItem";
 
       const orderTime  = data.time?.toMillis ? data.time.toMillis() : 0;
       const ageSeconds = (now - orderTime) / 1000;
-      // Allow cancel within 60s for Preparing OR Pending Payment
-      const canCancel  = (data.status === "Preparing" || data.status === "Pending Payment")
-                          && ageSeconds < 60;
+      const canCancel  = (data.status === "Preparing" || data.status === "Pending Payment") && ageSeconds < 60;
 
       const cancelHtml = canCancel
         ? `<button class="cancelOrderBtn" onclick="cancelOrder('${data._id}', this)">✕ Cancel</button>`
         : "";
 
-      // Helpful hint for pending payment
       const pendingHint = data.status === "Pending Payment"
-        ? `<span class="pendingHint">⏳ Waiting for admin to confirm your UPI payment</span>`
+        ? `<div class="pendingHint">⏳ Waiting for admin to confirm your UPI payment</div>`
         : "";
 
+      const statusClass = data.status === "Pending Payment" ? "status-Pending" :
+                          data.status === "Preparing" ? "status-Preparing" :
+                          data.status === "Ready" ? "status-Ready" : "status-Delivered";
+
       li.innerHTML = `
-        <div class="loLeft">
-          <span class="loToken">Token #${data.token}</span>
-          <span class="loItems">${data.items.map(i => `${i.name} ×${i.qty}`).join(", ")}</span>
-          ${pendingHint}
-          ${cancelHtml}
+        <div class="loHeader">
+          <div>
+            <div class="loToken">#${data.token}</div>
+            <div class="loItems">${data.items.map(i => `${i.qty}× ${i.name}`).join(", ")}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="loTotal">₹${data.total}</div>
+            ${cancelHtml}
+          </div>
         </div>
-        <div class="loRight">
-          <span class="loTotal">₹${data.total}</span>
-          <span class="${sc[data.status] || 'statusPreparing'}">${data.status}</span>
-        </div>`;
+        ${pendingHint}
+        <div class="order-tracker ${statusClass}">
+          <div class="tracker-line"></div>
+          <div class="tracker-progress"></div>
+          <div class="tracker-step step-1">
+            <div class="step-icon">💳</div>
+            <div class="step-label">Payment<br>Confirmed</div>
+          </div>
+          <div class="tracker-step step-2">
+            <div class="step-icon">🔥</div>
+            <div class="step-label">Preparing</div>
+          </div>
+          <div class="tracker-step step-3">
+            <div class="step-icon">✅</div>
+            <div class="step-label">Ready</div>
+          </div>
+          <div class="tracker-step step-4">
+            <div class="step-icon">🛍</div>
+            <div class="step-label">Delivered</div>
+          </div>
+        </div>
+      `;
       ordersList.appendChild(li);
     });
+
+    // ── Past orders (history) ───────────────────────────────────────
+    if (pastOrders.length > 0) {
+      const historySection = document.createElement("li");
+      historySection.style.listStyle = "none";
+      historySection.innerHTML = `
+        <div class="historyToggle" onclick="this.parentElement.querySelector('.historyList').classList.toggle('open'); this.querySelector('.historyArrow').classList.toggle('flipped')">
+          <span>📋 Order History (${pastOrders.length})</span>
+          <span class="historyArrow">▼</span>
+        </div>
+        <ul class="historyList">
+          ${pastOrders.reverse().map(data => `
+            <li class="historyItem ${data.status === 'Cancelled' ? 'historyCancelled' : 'historyDelivered'}">
+              <div class="hiLeft">
+                <span class="hiToken">#${data.token}</span>
+                <span class="hiItems">${data.items.map(i => `${i.qty}× ${i.name}`).join(", ")}</span>
+              </div>
+              <div class="hiRight">
+                <span class="hiTotal">₹${data.total}</span>
+                <span class="hiStatus">${data.status === 'Delivered' ? '✅ Delivered' : '✕ Cancelled'}</span>
+              </div>
+            </li>
+          `).join("")}
+        </ul>
+      `;
+      ordersList.appendChild(historySection);
+    }
   }
 }
